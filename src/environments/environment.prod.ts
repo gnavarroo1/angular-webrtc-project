@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
   name: 'production',
-  wss_url: ''
+  wssUrl: 'ws://127.0.0.1:8091'
 };

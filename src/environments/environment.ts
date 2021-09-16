@@ -2,16 +2,16 @@
 // `ng build` replaces `environment.ts` with `environment.prod.ts`.
 // The list of file replacements can be found in `angular.json`.
 
+import * as uuid from 'uuid';
+
 export const environment = {
   production: false,
   name: 'development',
-  wss_url: 'ws://127.0.0.1:5001'
+  wssUrl: 'ws://127.0.0.1:5001',
+  user_id: uuid.v4(),
+  camVideoSimulcastEncodings: [
+    { maxBitrate: 96000, scaleResolutionDownBy: 4 },
+    { maxBitrate: 680000, scaleResolutionDownBy: 1 },
+  ],
+  testRoom: '4zsnRr+4wWBLFcSb',
 };
-/*
- * For easier debugging in development mode, you can import the following file
- * to ignore zone related error stack frames such as `zone.run`, `zoneDelegate.invokeTask`.
- *
- * This import should be commented out in production mode because it will have a negative impact
- * on performance if an error is thrown.
- */
-// import 'zone.js/plugins/zone-error';  // Included with Angular CLI.

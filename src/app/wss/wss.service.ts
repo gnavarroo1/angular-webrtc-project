@@ -1,66 +1,62 @@
-import {Injectable} from "@angular/core";
-import {Socket} from "ngx-socket-io";
-import {Observable, of, fromEvent} from "rxjs";
+import { Injectable } from '@angular/core';
+import { Socket } from 'ngx-socket-io';
+import { Observable } from 'rxjs';
 
-import {NGXLogger} from "ngx-logger";
-
+import { NGXLogger } from 'ngx-logger';
+import { IMemberIdentifier } from '../../types/helper';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class WssService {
+  constructor(private logger: NGXLogger, private socket: Socket) {}
 
-  constructor(private logger:NGXLogger, private socket: Socket ) {
-
+  async requestMediaConfigure(): Promise<any> {
+    return this.socket.emit('mediaconfigure', '');
+  }
+  async joinRoom(payload: any): Promise<any> {
+    return this.socket.emit('joinRoom', payload);
   }
 
-  onMediaVideoOrientationChange():Observable<any>{
+  async requestMedia(payload: Record<string, any>): Promise<any> {
+    return await this.socket.emit('media', payload);
+  }
 
+  async requestHandshake(payload: Record<string, any>): Promise<any> {
+    return this.socket.emit('handshake', payload);
+  }
+
+  onMediaClientConnected(): Observable<any> {
+    return this.socket.fromEvent('mediaClientConnected');
+  }
+  onMediaClientDisconnect(): Observable<IMemberIdentifier> {
+    return this.socket.fromEvent('mediaClientDisconnect');
+  }
+  onMediaVideoOrientationChange(): Observable<any> {
     return this.socket.fromEvent('mediaVideoOrientationChange');
   }
-
-  onMediaProduce():Observable<any>{
+  onMediaProduce(): Observable<any> {
     return this.socket.fromEvent('mediaProduce');
   }
-  onMediaReproduce():Observable<any>{
+  onMediaReproduce(): Observable<any> {
     return this.socket.fromEvent('mediaReproduce');
   }
-
-  onMediaProducerPause(): Observable<any>{
+  onMediaProducerPause(): Observable<any> {
     return this.socket.fromEvent('mediaProducerPause');
   }
-
-  onMediaProducerResume(): Observable<any>{
+  onMediaProducerResume(): Observable<any> {
     return this.socket.fromEvent('mediaProducerResume');
   }
-
-  onMediaActiveSpeaker(): Observable<any>{
+  onMediaActiveSpeaker(): Observable<any> {
     return this.socket.fromEvent('mediaActiveSpeaker');
   }
-
-  onMediaReconfigure():Observable<any>{
+  onMediaReconfigure(): Observable<any> {
     return this.socket.fromEvent('mediaReconfigure');
   }
-
-  onConnection(): Observable<unknown>{
+  onConnection(): Observable<any> {
     return this.socket.fromEvent('connect');
   }
-
-  async requestMediaConfigure():Promise<any>{
-      return this.socket.emit('mediaconfigure')
-  }
-
-  async requestMedia(payload: Record<string, any>):Promise<any>{
-    // let result = await this.socket.emit('media',payload);
-    // console.log("requestmedia",payload)
-    return this.socket.emit('media', payload , (response: any) => {
-      console.log('MEDIA RESPONSE', response)
-    })
-
-  }
-  onRequestMedia():Observable<any>{
+  onRequestMedia(): Observable<any> {
     return this.socket.fromEvent('media');
   }
-
-
 }

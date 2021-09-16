@@ -1,1 +1,63 @@
-/* You can add global styles to this file, and also import other style files */
+* {
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  outline: none;
+}
+.mat-typography{
+  background: #141e30;
+}
+head {
+  display: none;
+}
+@media (min-device-width: 721px) {
+  html {
+    font-size: 16px;
+  }
+}
+@media (max-device-width: 720px) {
+  html {
+    font-size: 12px;
+  }
+}
+body {
+  height: 100%;
+}
+body {
+  display: block;
+  margin: 8px;
+}
+body {
+  background: none;
+  line-height: 1;
+}
+body {
+  line-height: 1;
+  color: #000;
+  background: #fff;
+}
+html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, big, cite, code, del, dfn, em, img, ins, kbd, q, s, samp, small, strike, strong, sub, sup, tt, var, dl, dt, dd, ol, ul, li, fieldset, form, label, legend, table, caption, tbody, tfoot, thead, tr, th, td {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  font-weight: inherit;
+  font-style: inherit;
+  font-family: inherit;
+  font-size: 100%;
+  vertical-align: baseline;
+}
+html {
+  height: 100%;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  background: #141e30;
+  background: -webkit-linear-gradient(bottom, #243b55, #141e30);
+  background: -moz-linear-gradient(bottom, #243b55, #141e30);
+  background: -o-linear-gradient(bottom, #243b55, #141e30);
+  background: -ms-linear-gradient(bottom, #243b55, #141e30);
+  background: linear-gradient(to top, #243b55, #141e30);
+  font-family: 'Roboto';
+  font-weight: 300;
+}
