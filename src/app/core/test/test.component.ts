@@ -3,10 +3,9 @@ import { NGXLogger } from 'ngx-logger';
 import { MediasoupService } from '../../wss/wss.mediasoup';
 import { environment } from '../../../environments/environment';
 import { animate, style, transition, trigger } from '@angular/animations';
-import { IMemberIdentifier } from '../../../types/helper';
+import { IMemberIdentifier, MemberType } from '../../meetings/types/defines';
 import { ActivatedRoute } from '@angular/router';
 import { ClipboardService } from 'ngx-clipboard';
-import { MemberType } from '../../../types/enums';
 
 @Component({
   selector: 'app-test',
@@ -47,9 +46,17 @@ export class TestComponent implements OnInit {
     this.memberType = snapshotData.memberType;
     //TODO VALIDATE LINK ID
     this.mediasoupService.onConnectionReady().subscribe(async (data) => {
+      this.mediasoupService.user_id = this.user_id;
+      this.mediasoupService.session_id = '4zsnRr+4wWBLFcSb';
       if (data) {
-        await this.mediasoupService.joinRoom(snapshotData.memberType);
-        await this.mediasoupService.initCommunication();
+        await this.mediasoupService
+          .joinRoom(snapshotData.memberType)
+          .then(async () => {
+            await this.mediasoupService.initCommunication();
+          })
+          .catch((err) => {
+            this.logger.error('TEST COMPONENT', err);
+          });
       }
     });
     this.mediasoupService.onAudioEnabled().subscribe((data) => {});
@@ -90,13 +97,11 @@ export class TestComponent implements OnInit {
     this.mediasoupService.producerAudioResume(environment.user_id);
   }
   printConsumers(): void {
-    this.logger.warn(
-      'audioConsumerMedia',
+    this.logger.warn('TEST', [
       this.mediasoupService.consumersAudio,
       this.mediasoupService.consumersVideo,
-      this.mediasoupService.consumersAudioStream,
-      this.mediasoupService.consumersVideoStream
-    );
+      this.mediasoupService.consumerTransport,
+    ]);
   }
   getLocalStream(): MediaStream | undefined {
     // console.log(this.mediasoupService.getStream());

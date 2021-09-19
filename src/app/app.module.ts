@@ -26,15 +26,7 @@ import { ClipboardModule } from 'ngx-clipboard';
     ClipboardModule,
     HttpClientModule,
     LoggerModule.forRoot({ level: NgxLoggerLevel.DEBUG }),
-    SocketIoModule.forRoot({
-      url: environment.wssUrl,
-      options: {
-        query: {
-          session_id: '4zsnRr+4wWBLFcSb',
-          user_id: environment.user_id,
-        },
-      },
-    }),
+    SocketIoModule,
     TestModule,
     MatGridListModule,
     MatCardModule,

@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { TestComponent } from './core/test/test.component';
-import { MemberType } from '../types/enums';
+import { MemberType } from './meetings/types/defines';
 
 const routes: Routes = [
   {
