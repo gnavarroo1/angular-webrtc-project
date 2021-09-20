@@ -47,14 +47,26 @@ export const environment = {
       camVideoSimulcastEncodings: [
         {
           rid: 'r0',
+          scaleResolutionDownBy: 8,
           maxBitrate: 100000,
-          scaleResolutionDownBy: 4,
           scalabilityMode: 'S1T3',
         },
         {
           rid: 'r1',
-          maxBitrate: 12000000,
+          scaleResolutionDownBy: 4,
+          maxBitrate: 200000,
+          scalabilityMode: 'S1T3',
+        },
+        {
+          rid: 'r2',
+          scaleResolutionDownBy: 2,
+          maxBitrate: 700000,
+          scalabilityMode: 'S1T3',
+        },
+        {
+          rid: 'r3',
           scaleResolutionDownBy: 1,
+          maxBitrate: 2500000,
           scalabilityMode: 'S1T3',
         },
       ],

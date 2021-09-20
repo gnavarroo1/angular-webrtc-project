@@ -27,7 +27,9 @@ export class MediasoupService {
     return this._memberType;
   }
   requestTimeout = 20000;
-
+  private readonly PC_PROPRIETARY_CONSTRAINTS = {
+    optional: [{ googDscp: true }],
+  };
   videoAspectRatio = 1.77;
   // lastN = 4;
   // mobileLastN = 1;
@@ -61,7 +63,7 @@ export class MediasoupService {
     new MediaStream()
   );
   private producerAudio!: Producer;
-
+  private audioOnly = false;
   public producerTransport!: Transport;
   public consumerTransport!: Transport;
 
@@ -83,8 +85,12 @@ export class MediasoupService {
     string,
     MediaStream
   >();
+  public consumers: Map<string, IMemberIdentifier> = new Map<
+    string,
+    IMemberIdentifier
+  >();
 
-  private consumers: BehaviorSubject<Map<string, IMemberIdentifier>> =
+  public consumer$: BehaviorSubject<Map<string, IMemberIdentifier>> =
     new BehaviorSubject<Map<string, IMemberIdentifier>>(
       new Map<string, IMemberIdentifier>()
     );
@@ -122,48 +128,83 @@ export class MediasoupService {
       this.isConnectionReady.next(true);
       this.wssService.socket.on(
         'request',
-        async (request: any, cb: (arg0: null) => void) => {
-          console.error('ONREQUEST', request);
+        async (
+          request: any,
+          resolve: () => void,
+          reject: (number: number, msg: string) => void
+        ) => {
           switch (request.method) {
             case 'newConsumer': {
+              console.error('request', request);
+              if (this.skipConsume) {
+                reject(403, 'Not consuming');
+              }
               try {
                 const {
-                  id,
                   peerId,
+                  producerId,
+                  id,
                   kind,
                   rtpParameters,
-                  producerId,
+                  type,
                   appData,
                   producerPaused,
                 } = request.data;
-                const consumerOptions = {
-                  id: id,
-                  producerId: producerId,
-                  kind: kind,
-                  rtpParameters: rtpParameters,
-                  appData: { ...appData, peerId },
-                };
-                // await this.addConsumer(peerId, consumerOptions);
-                const consumer = await this.consumerTransport.consume(
-                  consumerOptions
-                );
-                consumer.on('transportclose', async () => {
-                  this.removeConsumerByKind(peerId, consumerOptions.kind);
+
+                const consumer = await this.consumerTransport.consume({
+                  id,
+                  producerId,
+                  kind,
+                  rtpParameters,
+                  appData: {
+                    ...appData,
+                    peerId,
+                  },
                 });
-                this.addConsumerByKind(consumer, peerId, consumerOptions.kind);
-                console.error('calling callback', request.data);
-                cb(null);
-                if (consumerOptions.kind === 'audio') {
+
+                switch (kind) {
+                  case 'audio':
+                    this.consumersAudio.set(peerId, consumer);
+
+                    break;
+                  case 'video':
+                    this.consumersVideo.set(peerId, consumer);
+                    break;
+                }
+                consumer.on('transportclose', () => {
+                  switch (kind) {
+                    case 'audio':
+                      this.consumersAudio.delete(peerId);
+                      break;
+                    case 'video':
+                      this.consumersVideo.delete(peerId);
+                      break;
+                  }
+                });
+
+                if (consumer.rtpParameters.encodings) {
+                  const { spatialLayers, temporalLayers } =
+                    mediasoupClient.parseScalabilityMode(
+                      consumer.rtpParameters.encodings[0].scalabilityMode
+                    );
+                }
+                resolve();
+
+                if (consumer.kind === 'audio') {
                   const stream = new MediaStream();
                   stream.addTrack(consumer.track);
-                  if (!stream.getAudioTracks()[0])
+                  if (!stream.getAudioTracks()[0]) {
                     throw new Error(
                       'request.newConsumer | given stream has no audio track'
                     );
+                  }
                 }
-                break;
-              } catch (error) {
-                console.error(error.message, error.stack);
+
+                if (consumer.kind === 'video' && this.audioOnly) {
+                  this.pauseConsumer(consumer);
+                }
+              } catch (e) {
+                throw e;
               }
             }
           }
@@ -172,19 +213,20 @@ export class MediasoupService {
       this.wssService.onMediaClientConnected().subscribe(async (data) => {
         console.warn('consumer connected', data);
         if (data.id !== environment.user_id) {
-          if (!this.consumers.getValue().has(data.id)) {
+          if (!this.consumers.has(data.id)) {
             await this.wssService.requestHandshake({
               target: data.id,
               kind: this._memberType,
             });
-            if (this.consumerTransport) {
-              // this.consumerVideoStart(data.id);
-            }
             if (data.kind !== MemberType.CONSUMER) {
-              this.consumers.next(this.consumers.getValue().set(data.id, data));
+              this.consumers.set(data.id, data);
+              this.consumer$.next(this.consumers);
+            }
+            if (this.consumerTransport) {
+              this.consumerVideoStart(data.id);
+              this.consumerAudioStart(data.id);
             }
           }
-          console.warn('CONSUMERS', this.consumers.getValue());
         }
       });
 
@@ -192,9 +234,8 @@ export class MediasoupService {
        * When a remote peer enters the meeting
        */
       this.wssService.onMediaClientDisconnect().subscribe(async (data) => {
-        const consumers = this.consumers.getValue();
-        consumers.delete(data.id);
-        this.consumers.next(consumers);
+        this.consumers.delete(data.id);
+        this.consumer$.next(this.consumers);
         this.consumersAudioStream.delete(data.id);
         this.consumersVideoStream.delete(data.id);
         this.consumersStream.delete(data.id);
@@ -209,10 +250,10 @@ export class MediasoupService {
             console.warn(`SE OBTUVO ${data.kind} DE ${data.user_id}`);
             switch (data.kind) {
               case 'video':
-                // await this.consumerVideoStart(data.user_id);
+                await this.consumerVideoStart(data.user_id);
                 break;
               case 'audio':
-                // await this.consumerAudioStart(data.user_id);
+                await this.consumerAudioStart(data.user_id);
                 break;
             }
           } catch (error) {
@@ -274,11 +315,15 @@ export class MediasoupService {
           const media = this.consumersAudio.get(data.user_id);
           if (media) {
             media.resume();
+          } else {
+            await this.consumerAudioStart(data.user_id);
           }
         } else if (data.kind === 'video') {
           const media = this.consumersVideo.get(data.user_id);
           if (media) {
             media.resume();
+          } else {
+            await this.consumerVideoStart(data.user_id);
           }
         }
       });
@@ -307,15 +352,85 @@ export class MediasoupService {
   }
 
   async joinRoom(memberType: MemberType): Promise<void> {
-    console.warn('MEMBER TYPE', memberType);
-    this._memberType = memberType;
+    console.warn('joining room', memberType);
+    const resAddClient = await this.wssService.messageWithCallback(
+      'addClient',
+      {
+        kind: memberType,
+      }
+    );
+    console.log(resAddClient);
+    const data = await this.wssService.requestMedia({
+      action: 'getRouterRtpCapabilities',
+    });
+    const routerRtpCapabilities = data.routerRtpCapabilities;
+    console.warn('DATA', routerRtpCapabilities);
+    if (!this.mediasoupDevice.loaded) {
+      routerRtpCapabilities.headerExtensions =
+        routerRtpCapabilities.headerExtensions.filter(
+          (ext: any) => ext.uri !== 'urn:3gpp:video-orientation'
+        );
+      console.warn('SETTING RTPCAPABILITIES');
+      await this.mediasoupDevice.load({ routerRtpCapabilities });
+    }
+    {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const audioTrack = stream.getAudioTracks()[0];
+
+      audioTrack.enabled = false;
+
+      setTimeout(() => audioTrack.stop(), 120000);
+    }
     if (memberType === MemberType.CONSUMER) {
       this.skipProduce = true;
     }
-    const res = await this.wssService.messageWithCallback('joinRoom', {
-      kind: memberType,
-    });
+
+    await this.createProducerTransport();
+    await this.createConsumerTransport();
+
+    const res = await this.wssService
+      .messageWithCallback('joinRoom', {
+        kind: memberType,
+        rtpCapabilities: this.mediasoupDevice.rtpCapabilities,
+      })
+      .then(await this.handleJoinedPeers)
+      .catch((err) => {
+        console.error(err.message, err.stack);
+      });
+
+    console.warn('MEMBER TYPE', memberType);
+    this._memberType = memberType;
+    if (!this.skipProduce) {
+      await this.producerAudioStart(true);
+      await this.producerVideoStart(true);
+    }
+
+    console.log(res);
   }
+
+  handleJoinedPeers = async (res: {
+    id: string;
+    peersInfo: IMemberIdentifier[];
+  }) => {
+    console.warn('CONSUMERS', this.consumers);
+    for (const peersInfoElement of res.peersInfo) {
+      console.error('IMember', peersInfoElement);
+      this.consumers.set(
+        peersInfoElement.id,
+        peersInfoElement as IMemberIdentifier
+      );
+      // if (this.consumerTransport) {
+      //   this.consumerVideoStart(peersInfoElement.id);
+      //   this.consumerAudioStart(peersInfoElement.id);
+      // }
+    }
+    if (!this.skipConsume) {
+      await this.setAudioProducersIds();
+      await this.setVideoProducerIds();
+    }
+    this.consumer$.next(this.consumers);
+  };
+
   //
   // getConsumersMedia() {
   //   return {
@@ -324,7 +439,7 @@ export class MediasoupService {
   //   };
   // }
   getConsumers(): Observable<any> {
-    return this.consumers.asObservable();
+    return this.consumer$.asObservable();
   }
 
   public onConnectionReady(): Observable<boolean> {
@@ -339,9 +454,11 @@ export class MediasoupService {
   }
 
   async initCommunication(): Promise<void> {
-    await this.load();
-    await this.producerAudioStart(true);
-    await this.producerVideoStart(true);
+    // await this.load();
+    if (!this.skipProduce) {
+      await this.producerAudioStart(true);
+      await this.producerVideoStart(true);
+    }
   }
 
   /**
@@ -379,36 +496,29 @@ export class MediasoupService {
           );
         await this.mediasoupDevice.load({ routerRtpCapabilities });
       }
-      await this.createTransport();
-      // if (!this.skipConsume) {
-      //   await this.setAudioProducersIds();
-      //   await this.setVideoProducerIds();
-      // }
+      await this.createProducerTransport();
+      await this.createConsumerTransport();
+      if (!this.skipConsume) {
+        await this.setAudioProducersIds();
+        await this.setVideoProducerIds();
+      }
     } catch (error) {
       console.error(error.message, error.stack);
     }
   }
   async setAudioProducersIds() {
-    const audioProducersIds = await this.wssService.requestMedia(
-      //this._user_id,
-      //this._session_id,
-      {
-        action: 'getAudioProducerIds',
-      }
-    );
+    const audioProducersIds: string[] = await this.wssService.requestMedia({
+      action: 'getAudioProducerIds',
+    });
     audioProducersIds.forEach(async (id: string) => {
       await this.consumerAudioStart(id);
     });
   }
 
   async setVideoProducerIds() {
-    const videoProducersIds = await this.wssService.requestMedia(
-      //this._user_id,
-      //this._session_id,
-      {
-        action: 'getVideoProducerIds',
-      }
-    );
+    const videoProducersIds: string[] = await this.wssService.requestMedia({
+      action: 'getVideoProducerIds',
+    });
     videoProducersIds.forEach(async (id: string) => {
       await this.consumerVideoStart(id);
     });
@@ -432,149 +542,145 @@ export class MediasoupService {
     }
   }
 
-  // /**
-  //  * Create a transport to transmit your stream
-  //  */
-  // private async createProducerTransport(): Promise<void> {
-  //   if (this.skipProduce) {
-  //     return;
-  //   }
-  //   try {
-  //     const data: WebRtcTransportResponse = await this.wssService.requestMedia({
-  //       action: 'createWebRtcTransport',
-  //       data: { type: 'producer' },
-  //     });
-  //     console.log(data.params);
-  //     const { id, iceParameters, iceCandidates, dtlsParameters } = data.params;
-  //     this.producerTransport = this.mediasoupDevice.createSendTransport({
-  //       id,
-  //       iceParameters,
-  //       iceCandidates,
-  //       dtlsParameters,
-  //       iceServers: environment.mediasoupClient.configuration.iceServers,
-  //       // iceTransportPolicy:
-  //       //   this.device.flag === 'firefox' &&
-  //       //   environment.mediasoupClient.configuration.iceServers
-  //       //     ? 'relay'
-  //       //     : undefined,
-  //       proprietaryConstraints: PC_PROPRIETARY_CONSTRAINTS,
-  //     });
-  //     console.log('PRODUCER TRANSPORT', this.producerTransport);
-  //     // 'connect' | 'produce' | 'producedata' | 'connectionstatechange'
-  //     this.producerTransport.on(
-  //       'connect',
-  //       async ({ dtlsParameters }, callback, errback) => {
-  //         console.warn('ON TRANSPORT CONNECT', dtlsParameters);
-  //         try {
-  //           const res = await this.wssService.requestMedia({
-  //             action: 'connectWebRtcTransport',
-  //             data: { dtlsParameters, type: 'producer' },
-  //           });
-  //           console.log('RESPONSE ON TRANSPORT CONNECT', res);
-  //           callback();
-  //         } catch (error) {
-  //           errback(error);
-  //         }
-  //       }
-  //     );
-  //     this.producerTransport.on(
-  //       'produce',
-  //       async ({ kind, rtpParameters }, callback, errback) => {
-  //         await this.wssService
-  //           .requestMedia(
-  //             // this._user_id, this._session_id,
-  //             {
-  //               action: 'produce',
-  //               data: {
-  //                 producerTransportId: this.producerTransport.id,
-  //                 kind,
-  //                 rtpParameters,
-  //               },
-  //             }
-  //           )
-  //           .then(callback)
-  //           .catch(errback);
-  //       }
-  //     );
-  //
-  //     this.producerTransport.on(
-  //       'connectionstatechange',
-  //       async (state: TState) => {
-  //         switch (state) {
-  //           case 'connecting':
-  //             break;
-  //           case 'connected':
-  //             break;
-  //           case 'failed':
-  //             this.producerTransport.close();
-  //             break;
-  //           default:
-  //             break;
-  //         }
-  //       }
-  //     );
-  //   } catch (error) {
-  //     console.error(error.message, error.stack);
-  //   }
-  // }
-  //
-  // /**
-  //  * Create transport for receiving streams from other users
-  //  */
-  // private async createConsumerTransport(): Promise<void> {
-  //   try {
-  //     const data: WebRtcTransportResponse = await this.wssService.requestMedia(
-  //       // this._user_id,
-  //       // this._session_id,
-  //       {
-  //         action: 'createWebRtcTransport',
-  //         data: { type: 'consumer' },
-  //       }
-  //     );
-  //     this.consumerTransport = this.mediasoupDevice.createRecvTransport(
-  //       data.params
-  //     );
-  //
-  //     // 'connect' | 'connectionstatechange'
-  //     this.consumerTransport.on(
-  //       'connect',
-  //       async ({ dtlsParameters }, callback, errback) => {
-  //         await this.wssService
-  //           .requestMedia(
-  //             // this._user_id, this._session_id,
-  //             {
-  //               action: 'connectWebRtcTransport',
-  //               data: { dtlsParameters, type: 'consumer' },
-  //             }
-  //           )
-  //           .then(callback)
-  //           .catch(errback);
-  //       }
-  //     );
-  //
-  //     this.consumerTransport.on(
-  //       'connectionstatechange',
-  //       async (state: TState) => {
-  //         console.warn('CONNECTION STATE CHANGE', state);
-  //         switch (state) {
-  //           case 'connecting':
-  //             break;
-  //           case 'connected':
-  //             break;
-  //           case 'failed':
-  //             this.consumerTransport.close();
-  //             break;
-  //           default:
-  //             break;
-  //         }
-  //       }
-  //     );
-  //   } catch (error) {
-  //     console.error(error.message, error.stack);
-  //   }
-  // }
+  /**
+   * Create a transport to transmit your stream
+   */
+  private async createProducerTransport(): Promise<void> {
+    if (this.skipProduce) {
+      return;
+    }
+    try {
+      const data = await this.wssService.requestMedia({
+        action: 'createWebRtcTransport',
+        data: { type: 'producer' },
+      });
+      console.log(data.params);
+      const { id, iceParameters, iceCandidates, dtlsParameters } = data;
+      this.producerTransport = this.mediasoupDevice.createSendTransport({
+        id,
+        iceParameters,
+        iceCandidates,
+        dtlsParameters,
+        iceServers: [],
+        proprietaryConstraints: this.PC_PROPRIETARY_CONSTRAINTS,
+      });
+      console.log('PRODUCER TRANSPORT', this.producerTransport);
+      // 'connect' | 'produce' | 'producedata' | 'connectionstatechange'
+      this.producerTransport.on(
+        'connect',
+        async ({ dtlsParameters }, callback, errback) => {
+          console.warn('ON TRANSPORT CONNECT', dtlsParameters);
+          try {
+            const res = await this.wssService.requestMedia({
+              action: 'connectWebRtcTransport',
+              data: { dtlsParameters, type: 'producer' },
+            });
+            console.log('RESPONSE ON TRANSPORT CONNECT', res);
+            callback();
+          } catch (error) {
+            errback(error);
+          }
+        }
+      );
+      this.producerTransport.on(
+        'produce',
+        async ({ kind, rtpParameters, appData }, callback, errback) => {
+          await this.wssService
+            .requestMedia(
+              // this._user_id, this._session_id,
+              {
+                action: 'produce',
+                data: {
+                  producerTransportId: this.producerTransport.id,
+                  kind,
+                  rtpParameters,
+                },
+              }
+            )
+            .then(callback)
+            .catch(errback);
+        }
+      );
+
+      this.producerTransport.on(
+        'connectionstatechange',
+        async (state: TState) => {
+          switch (state) {
+            case 'connecting':
+              break;
+            case 'connected':
+              break;
+            case 'failed':
+              this.producerTransport.close();
+              break;
+            default:
+              break;
+          }
+        }
+      );
+    } catch (error) {
+      console.error(error.message, error.stack);
+    }
+  }
+  /**
+   * Create transport for receiving streams from other users
+   */
+  private async createConsumerTransport(): Promise<void> {
+    if (this.skipConsume) {
+      return;
+    }
+    try {
+      const data = await this.wssService.requestMedia({
+        action: 'createWebRtcTransport',
+        data: { type: 'consumer' },
+      });
+      this.consumerTransport = this.mediasoupDevice.createRecvTransport(data);
+
+      // 'connect' | 'connectionstatechange'
+      this.consumerTransport.on(
+        'connect',
+        async ({ dtlsParameters }, callback, errback) => {
+          await this.wssService
+            .requestMedia(
+              // this._user_id, this._session_id,
+              {
+                action: 'connectWebRtcTransport',
+                data: {
+                  dtlsParameters,
+                  transportId: this.consumerTransport.id,
+                  type: 'consumer',
+                },
+              }
+            )
+            .then(callback)
+            .catch(errback);
+        }
+      );
+
+      this.consumerTransport.on(
+        'connectionstatechange',
+        async (state: TState) => {
+          console.warn('CONNECTION STATE CHANGE', state);
+          switch (state) {
+            case 'connecting':
+              break;
+            case 'connected':
+              break;
+            case 'failed':
+              this.consumerTransport.close();
+              break;
+            default:
+              break;
+          }
+        }
+      );
+    } catch (error) {
+      console.error(error.message, error.stack);
+    }
+  }
 
   private async createTransport(): Promise<void> {
+    console.warn('ATTEMPT TO CREATE TRANSPORT');
     const { rtpCapabilities } = this.mediasoupDevice;
     const iceTransportPolicy =
       this.device.flag === 'firefox' &&
@@ -585,9 +691,6 @@ export class MediasoupService {
       const transportInfo = await this.wssService.requestMedia({
         action: 'createWebRtcTransport',
         data: {
-          producing: true,
-          consuming: false,
-          forceTcp: false,
           type: 'producer',
         },
       });
@@ -599,8 +702,8 @@ export class MediasoupService {
         iceParameters,
         iceCandidates,
         dtlsParameters,
-        iceServers: environment.mediasoupClient.configuration.iceServers,
-        iceTransportPolicy: iceTransportPolicy,
+        // iceServers: environment.mediasoupClient.configuration.iceServers,
+        // iceTransportPolicy: iceTransportPolicy,
         proprietaryConstraints: PC_PROPRIETARY_CONSTRAINTS,
       });
       this.producerTransport.on(
@@ -621,20 +724,33 @@ export class MediasoupService {
       this.producerTransport.on(
         'produce',
         async ({ kind, rtpParameters, appData }, callback, errback) => {
-          try {
-            const { id } = await this.wssService.requestMedia({
+          await this.wssService
+            .requestMedia({
               action: 'produce',
               data: {
                 producerTransportId: this.producerTransport.id,
                 kind,
                 rtpParameters,
-                appData,
-                rtpCapabilities,
               },
-            });
-            callback({ id });
-          } catch (e) {
-            errback(e);
+            })
+            .then(({ id }) => callback({ id }))
+            .catch(errback);
+        }
+      );
+      this.producerTransport.on(
+        'connectionstatechange',
+        async (state: TState) => {
+          console.log('PRODUCER TRANSPORT STATE', state);
+          switch (state) {
+            case 'connecting':
+              break;
+            case 'connected':
+              break;
+            case 'failed':
+              this.producerTransport.close();
+              break;
+            default:
+              break;
           }
         }
       );
@@ -642,9 +758,6 @@ export class MediasoupService {
     const transportInfo = await this.wssService.requestMedia({
       action: 'createWebRtcTransport',
       data: {
-        forceTcp: false,
-        producing: false,
-        consuming: true,
         type: 'consumer',
       },
     });
@@ -671,6 +784,25 @@ export class MediasoupService {
           })
           .then(callback)
           .catch(errback);
+      }
+    );
+    this.consumerTransport.on(
+      'connectionstatechange',
+      async (state: TState) => {
+        console.warn('CONSUMER TRANSPORT STATE', state);
+        switch (state) {
+          case 'new':
+            break;
+          case 'connecting':
+            break;
+          case 'connected':
+            break;
+          case 'failed':
+            this.consumerTransport.close();
+            break;
+          default:
+            break;
+        }
       }
     );
   }
@@ -722,7 +854,7 @@ export class MediasoupService {
         }
         this.producerVideoStream$.next(this.producerVideoStream);
       } catch (e) {
-        console.error(e);
+        console.error(e.name, e.message);
       }
     }
   }
@@ -757,6 +889,7 @@ export class MediasoupService {
       !this.producerVideo.closed
     ) {
       console.info('RESUMIENDO');
+      // this.targetProducerResume({ user_id: user_id, kind: 'video' });
       this.producerVideo.resume();
     } else if (!this.producerVideo || this.producerVideo.closed) {
       console.info('INICIANDO');
@@ -794,11 +927,7 @@ export class MediasoupService {
       }
       if (this.mediasoupDevice.canProduce('audio')) {
         const audioStream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            sampleSize: 16,
-            channelCount: 1,
-            sampleRate: 96000,
-          },
+          audio: true,
         });
         const audioTrack = audioStream.getAudioTracks()[0];
 
@@ -856,9 +985,9 @@ export class MediasoupService {
         // await this.targetProducerResume({ user_id: user_id, kind: 'audio' });
         this.producerAudio.resume();
       } else if (!this.producerAudio || this.producerAudio.closed) {
-        if (!this.skipConsume) {
-          await this.setAudioProducersIds();
-        }
+        // if (!this.skipConsume) {
+        //   await this.setAudioProducersIds();
+        // }
         await this.producerAudioStart();
       }
     } catch (error) {
@@ -882,15 +1011,12 @@ export class MediasoupService {
   /**
    * Pauses the user stream
    */
-  async targetProducerPause(data: { user_id: string; kind: TKind }) {
+  async targetProducerPause(data: { user_id: string; type: TKind }) {
     try {
-      await this.wssService.requestMedia(
-        // this._user_id, this._session_id,
-        {
-          action: 'producerPause',
-          data,
-        }
-      );
+      await this.wssService.requestMedia({
+        action: 'producerPause',
+        data,
+      });
     } catch (error) {
       console.error(error.message, error.stack);
     }
@@ -900,7 +1026,7 @@ export class MediasoupService {
    * Unpause user stream
    * @param data user_id and stream type
    */
-  async targetProducerResume(data: { user_id: string; kind: TKind }) {
+  async targetProducerResume(data: { user_id: string; type: TKind }) {
     try {
       await this.wssService.requestMedia(
         // this._user_id, this._session_id,
@@ -918,7 +1044,7 @@ export class MediasoupService {
    * Stop the user's stream (to resume the broadcast, this user will have to recreate the producer)
    * @param data user_id and stream type
    */
-  async targetProducerClose(data: { user_id: string; kind: TKind }) {
+  async targetProducerClose(data: { user_id: string; type: TKind }) {
     try {
       await this.wssService.requestMedia(
         // this._user_id, this._session_id,
@@ -936,7 +1062,7 @@ export class MediasoupService {
    * Pause the stream of all users
    * @param data stream type
    */
-  async allProducerPause(data: { kind: TKind }) {
+  async allProducerPause(data: { type: TKind }) {
     try {
       await this.wssService.requestMedia(
         // this._user_id, this._session_id,
@@ -954,7 +1080,7 @@ export class MediasoupService {
    * Unpause the stream of all users
    * @param data stream type
    */
-  async allProducerResume(data: { kind: TKind }) {
+  async allProducerResume(data: { type: TKind }) {
     try {
       await this.wssService.requestMedia(
         // this._user_id, this._session_id,
@@ -972,7 +1098,7 @@ export class MediasoupService {
    * Stop the stream of all users (in order to resume the transmission, these users will have to recreate the producer)
    * @param data stream type
    */
-  async allProducerClose(data: { kind: TKind }) {
+  async allProducerClose(data: { type: TKind }) {
     try {
       await this.wssService.requestMedia(
         // this._user_id, this._session_id,
@@ -993,18 +1119,10 @@ export class MediasoupService {
   private async consumerVideoStart(user_id: string): Promise<void> {
     try {
       const { rtpCapabilities } = this.mediasoupDevice;
-      const consumeData: {
-        id: string;
-        producerId: string;
-        kind: TKind;
-        rtpParameters: RTCRtpParameters;
-      } = await this.wssService.requestMedia(
-        // this._user_id, this._session_id,
-        {
-          action: 'consume',
-          data: { rtpCapabilities, user_id, kind: 'video' },
-        }
-      );
+      const consumeData = await this.wssService.requestMedia({
+        action: 'consume',
+        data: { rtpCapabilities, user_id, kind: 'video' },
+      });
       const consumer: Consumer = await this.consumerTransport.consume(
         consumeData
       );
@@ -1031,6 +1149,49 @@ export class MediasoupService {
       console.error(error.message, error.stack);
     }
   }
+
+  /**
+   * Accept audio stream from another user
+   * @param user_id user_id from the user who transmits the audio
+   */
+  private async consumerAudioStart(user_id: string): Promise<void> {
+    try {
+      console.warn(`Request to consume ${user_id} audio stream`);
+      const { rtpCapabilities } = this.mediasoupDevice;
+
+      const consumeData = await this.wssService.requestMedia({
+        action: 'consume',
+        data: { rtpCapabilities, user_id, kind: 'audio' },
+      });
+      console.warn(
+        `Generating consumer to ${user_id} audio stream`,
+        consumeData
+      );
+      const { id, producerId, kind, rtpParameters } = consumeData;
+      const consumer: Consumer = await this.consumerTransport.consume({
+        id,
+        kind,
+        rtpParameters,
+        producerId,
+      });
+
+      // 'trackended' | 'transportclose'
+      consumer.on('transportclose', async () => {
+        console.warn(`Producer ${user_id} audio stream transport closed`);
+        this.consumersAudioStream.delete(user_id);
+        this.consumersAudio.delete(user_id);
+      });
+
+      this.consumersAudio.set(user_id, consumer);
+      console.info('Agregado consumer a consumers audio', this.consumersAudio);
+      const { track } = consumer;
+      const stream = new MediaStream([track]);
+      this.consumersAudioStream.set(user_id, stream);
+    } catch (error) {
+      console.error(error.message, error.stack);
+    }
+  }
+
   async addConsumer(
     producerUserId: string,
     consumerOptions: ConsumerOptions
@@ -1093,56 +1254,17 @@ export class MediasoupService {
   }
 
   /**
-   * Accept audio stream from another user
-   * @param user_id user_id from the user who transmits the audio
-   */
-  private async consumerAudioStart(user_id: string): Promise<void> {
-    try {
-      const { rtpCapabilities } = this.mediasoupDevice;
-
-      const consumeData = await this.wssService.requestMedia(
-        // this._user_id,
-        // this._session_id,
-        {
-          action: 'consume',
-          data: { rtpCapabilities, user_id, kind: 'audio' },
-        }
-      );
-
-      const consumer = await this.consumerTransport.consume(consumeData);
-
-      // 'trackended' | 'transportclose'
-      consumer.on('transportclose', async () => {
-        this.consumersAudioStream.delete(user_id);
-        this.consumersAudio.delete(user_id);
-      });
-
-      this.consumersAudio.set(user_id, consumer);
-
-      const { track } = consumer;
-      const stream = new MediaStream([track]);
-      this.consumersAudioStream.set(user_id, stream);
-    } catch (error) {
-      console.error(error.message, error.stack);
-    }
-  }
-
-  /**
    * Restart connection
    * @param type type of transport
    */
   async restartIce(type: TPeer): Promise<void> {
     try {
-      const iceParameters: IceParameters = await this.wssService.requestMedia(
-        // this._user_id,
-        // this._session_id,
-        {
-          action: 'restartIce',
-          data: {
-            type,
-          },
-        }
-      );
+      const iceParameters: IceParameters = await this.wssService.requestMedia({
+        action: 'restartIce',
+        data: {
+          type,
+        },
+      });
       switch (type) {
         case 'producer':
           await this.producerTransport.restartIce({ iceParameters });
@@ -1250,5 +1372,37 @@ export class MediasoupService {
   }
   public getMemberAudioStream(id: string): MediaStream {
     return <MediaStream>this.consumersAudioStream.get(id);
+  }
+
+  async pauseConsumer(consumer: Consumer) {
+    if (consumer.paused) {
+      return;
+    }
+    try {
+      await this.wssService.messageWithCallback('pauseConsumer', {
+        appData: consumer.appData,
+        kind: consumer.kind,
+      });
+      consumer.pause();
+    } catch (e) {
+      //Todo notification
+      console.error(e.name, `Error pausing Consumer ${e}`);
+    }
+  }
+
+  async resumeConsumer(consumer: Consumer) {
+    if (!consumer.paused) {
+      return;
+    }
+    try {
+      await this.wssService.messageWithCallback('resumeConsumer', {
+        appData: consumer.appData,
+        kind: consumer.kind,
+      });
+      consumer.resume();
+    } catch (e) {
+      //Todo notification
+      console.error(e.name, `Error resuming Consumer ${e}`);
+    }
   }
 }

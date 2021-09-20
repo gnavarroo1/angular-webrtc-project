@@ -52,7 +52,7 @@ export class TestComponent implements OnInit {
         await this.mediasoupService
           .joinRoom(snapshotData.memberType)
           .then(async () => {
-            await this.mediasoupService.initCommunication();
+            // await this.mediasoupService.initCommunication();
           })
           .catch((err) => {
             this.logger.error('TEST COMPONENT', err);
@@ -97,11 +97,7 @@ export class TestComponent implements OnInit {
     this.mediasoupService.producerAudioResume(environment.user_id);
   }
   printConsumers(): void {
-    this.logger.warn('TEST', [
-      this.mediasoupService.consumersAudio,
-      this.mediasoupService.consumersVideo,
-      this.mediasoupService.consumerTransport,
-    ]);
+    this.logger.warn('TEST', this.mediasoupService.consumerTransport);
   }
   getLocalStream(): MediaStream | undefined {
     // console.log(this.mediasoupService.getStream());
@@ -113,7 +109,10 @@ export class TestComponent implements OnInit {
   getMemberAudioStream(key: string): MediaStream | undefined {
     return this.mediasoupService.getMemberAudioStream(key);
   }
-
+  async restartIce(): Promise<void> {
+    this.logger.warn('TEST', this.mediasoupService.consumersAudio);
+    this.logger.warn('TEST', this.mediasoupService.consumersVideo);
+  }
   async toggleAudio(): Promise<void> {
     if (this.audioEnabled) {
       await this.mediasoupService.producerAudioPause(environment.user_id);

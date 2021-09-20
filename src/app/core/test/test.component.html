@@ -50,6 +50,7 @@
           <div [ngClass]="{'button mic': true,'on':audioEnabled, 'off':!audioEnabled}" (click)="toggleAudio()"></div>
           <div [ngClass]="{'button webcam': true,'on':videoEnabled, 'off':!videoEnabled}" (click)="toggleVideo()"></div>
           <div class="button share off" (click)="printConsumers()" ></div>
+          <div class="button stats off" (click)="restartIce()" ></div>
         </div>
         <div data-component="PeerView">
           <div class="info">

@@ -62,22 +62,6 @@ export class WssService {
     return this._socket.fromEvent('media');
   }
 
-  async testack(): Promise<string> {
-    return new Promise<string>((resolve, reject) => {
-      try {
-        this._socket.emit('ping', 'test', (response: string) => {
-          console.log(
-            `success emitting event: ping, ACK from server: ${response}`
-          );
-          resolve(response);
-        });
-      } catch (e) {
-        console.log(`error emitting event: ${event}, error: ${e.message}`);
-        reject(e.message);
-      }
-    });
-  }
-
   async joinRoom(payload: any): Promise<any> {
     return new Promise<any>((resolve, reject) => {
       try {
@@ -90,7 +74,6 @@ export class WssService {
         reject(e.message);
       }
     });
-    return this._socket.emit('joinRoom', payload);
   }
   async messageWithCallback(event: string, payload: any): Promise<any> {
     return new Promise<any>((resolve, reject) => {
@@ -122,20 +105,5 @@ export class WssService {
         reject(e.message);
       }
     });
-    // return await this.socket.emit('media', payload);
   }
-
-  // async requestMedia(
-  //   user_id: string,
-  //   session_id: string,
-  //   payload: any
-  // ): Promise<any> {
-  //   return this.http
-  //     .post<any>(this.apiMediasoup, {
-  //       user_id: user_id,
-  //       session_id: session_id,
-  //       data: payload,
-  //     })
-  //     .toPromise();
-  // }
 }
