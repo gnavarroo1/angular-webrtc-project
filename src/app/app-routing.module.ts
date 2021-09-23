@@ -7,17 +7,17 @@ const routes: Routes = [
   {
     path: '',
     component: TestComponent,
-    data: { memberType: MemberType.BOTH },
+    data: { memberType: MemberType.BOTH, newMeeting: true },
   },
   {
     path: 'meetings/join/:id',
     component: TestComponent,
-    data: { memberType: MemberType.BOTH },
+    data: { memberType: MemberType.BOTH, newMeeting: false },
   },
   {
     path: 'meetings/broadcasting/:id',
     component: TestComponent,
-    data: { memberType: MemberType.CONSUMER },
+    data: { memberType: MemberType.CONSUMER, newMeeting: false },
   },
 ];
 

@@ -17,6 +17,19 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { LayoutModule } from '@angular/cdk/layout';
 import { ClipboardModule } from 'ngx-clipboard';
+import { interceptorProviders } from './core/interceptors/token.interceptor';
+import { JWT_OPTIONS, JwtModule } from '@auth0/angular-jwt';
+
+export function jwtOptionsFactory() {
+  return {
+    tokenGetter: () => {
+      return localStorage.getItem(environment.token.authHeaderKey);
+    },
+    authScheme: () => {
+      return 'Bearer ';
+    },
+  };
+}
 @NgModule({
   declarations: [AppComponent],
   imports: [
@@ -26,6 +39,12 @@ import { ClipboardModule } from 'ngx-clipboard';
     ClipboardModule,
     HttpClientModule,
     LoggerModule.forRoot({ level: NgxLoggerLevel.DEBUG }),
+    JwtModule.forRoot({
+      jwtOptionsProvider: {
+        provide: JWT_OPTIONS,
+        useFactory: jwtOptionsFactory,
+      },
+    }),
     SocketIoModule,
     TestModule,
     MatGridListModule,
@@ -35,7 +54,7 @@ import { ClipboardModule } from 'ngx-clipboard';
     MatButtonModule,
     LayoutModule,
   ],
-  providers: [],
+  providers: [interceptorProviders],
   bootstrap: [AppComponent],
 })
 export class AppModule {}

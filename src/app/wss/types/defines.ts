@@ -58,23 +58,6 @@ export type TState = 'new' | 'connecting' | 'connected' | 'failed' | 'closed';
 export type TPeer = 'producer' | 'consumer';
 export type TKind = 'video' | 'audio';
 
-export type MeetingDto = {
-  isActive: boolean;
-  isBroadcasting: boolean;
-  meetingCreatorId: string;
-  _id: string;
-  activeMembers?: any;
-};
-export type MeetingMemberDto = {
-  _id?: string;
-  sessionUserId: string;
-  userId: string;
-  isGuest: boolean;
-  nickname?: string;
-  memberType?: string;
-  meetingId?: string;
-};
-
 export enum MemberType {
   'BOTH',
   'PRODUCER',

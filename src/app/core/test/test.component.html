@@ -1,84 +1,125 @@
-<div id="mediasoup-demo-app-container">
-  <div data-component="Room">
-    <div data-component="Notifications"></div>
-    <div class="state" *ngIf="isOnlyConsumer()">
-      <div class="icon connected">
+
+<mat-sidenav-container class="example-container">
+  <mat-sidenav *ngIf="!isOnlyConsumer()"  #sidenav mode="side" position="end" [(opened)]="opened"  >
+    <div class="md-toolbar-tools">
+      <div class="wraper-v" style="min-width:20vw">
+        <mat-list >
+          <mat-list-item *ngFor="let peer of producerPeers | keyvalue" >
+            {{peer.key}}
+            <button mat-icon-button #menuTrigger="matMenuTrigger"  [matMenuTriggerFor]="menu" class="more-button">
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #menu="matMenu" >
+              <button  mat-menu-item (click)="globalAudioToggle(peer.key)">
+                <mat-icon >mic_off</mat-icon>
+              </button>
+              <button  mat-menu-item (click)="globalVideoToggle(peer.key)">
+                <mat-icon>videocam_off</mat-icon>
+              </button>
+            </mat-menu>
+          </mat-list-item>
+        </mat-list>
       </div>
-      <p class="text connected"  >connected</p>
     </div>
-    <div class="room-link-wrapper">
-      <div class="room-link">
-        <a class="link" rel="noopener noreferrer" target="_blank" (click)="getMeetingLink()" *ngIf="!isOnlyConsumer()">Meeting link</a>
-      </div>
-      <div class="room-link">
-        <a class="link" rel="noopener noreferrer" target="_blank" (click)="getBroadcastingLink()" *ngIf="!isOnlyConsumer()">Broadcasting link</a>
-      </div>
-    </div>
-    <div data-component="Peers">
-      <div class="peer-container" *ngFor="let peer of peers | keyvalue" >
-        <div *ngIf="notConsumer(peer.value.kind)" data-component="Peer" >
-          <div class="indicators">
-            <div class="icon mic-off" ></div>
-            <div class="icon webcam-off" ><span class="icon webcam-off" ></span></div>
+  </mat-sidenav>
+  <mat-sidenav-content>
+    <div id="mediasoup-demo-app-container">
+      <div data-component="Room">
+        <div data-component="Notifications"></div>
+        <div class="state" *ngIf="isBroadcasting">
+          <div class="icon connected">
           </div>
-          <div data-component="PeerView">
-            <div class="info">
-              <div class="icons">
-                <div class="icon info" ></div>
-                <div class="icon stats"></div>
+          <p class="text connected">Broadcasting!</p>
+        </div>
+        <div class="room-link-wrapper">
+<!--          <div class="room-link">-->
+<!--            <a class="link" rel="noopener noreferrer" target="_blank" (click)="sidenav.toggle()" *ngIf="!isOnlyConsumer()">Meeting link</a>-->
+<!--          </div>-->
+          <div class="room-link">
+            <a class="link" rel="noopener noreferrer" target="_blank" (click)="getMeetingLink()" *ngIf="!isOnlyConsumer()">Meeting link</a>
+          </div>
+          <div class="room-link" *ngIf="isBroadcasting">
+            <a class="link" rel="noopener noreferrer" target="_blank" (click)="getBroadcastingLink()" *ngIf="!isOnlyConsumer()">Broadcasting link</a>
+          </div>
+
+        </div>
+        <div data-component="Peers">
+          <div class="peer-container" *ngFor="let peer of producerPeers | keyvalue" >
+            <div *ngIf="notConsumer(peer.value.kind)" data-component="Peer" >
+              <div class="indicators">
+                <div [ngClass]="{'icon': true,'mic-off':!peer.value.producerAudioEnabled}" ></div>
+                <div [ngClass]="{'icon': true,'webcam-off':!peer.value.producerVideoEnabled}" ></div>
               </div>
-              <div class="peer">
-                <span class="display-name">{{peer.key}}</span>
-                <div class="row">
-                  <span class="device-icon edge"></span><span class="device-version"></span>
+              <div data-component="PeerView">
+                <div class="info">
+                  <div class="icons">
+<!--                    <div [ngClass]="{'button mic': true,'on':true, 'off':false}" (click)="globalAudioToggle(peer.key)" *ngIf="!isOnlyConsumer()"></div>-->
+<!--                    <div [ngClass]="{'button webcam': true,'on':true, 'off':false}" (click)="globalVideoToggle(peer.key)" *ngIf="!isOnlyConsumer()"></div>-->
+                    <!--                <div class="icon info" (click)="getConsumerState(peer.key)"></div>-->
+                    <!--                <div class="icon stats"><span class="icon stats" (click)="getConsumerState(peer.key)"></span></div>-->
+                  </div>
+                  <div class="peer">
+                    <span class="display-name">{{peer.key}}</span>
+                    <div class="row">
+                      <span class="device-icon edge"></span><span class="device-version"></span>
+                    </div>
+                  </div>
+                </div>
+                <video autoplay="" playsinline [id]="peer.key" [srcObject]="peer.value.producerVideoEnabled?getMemberVideoStream(peer.key):undefined"></video>
+                <audio autoplay="" playsinline  [srcObject]="getMemberAudioStream(peer.key)" ></audio>
+                <canvas class="face-detection"></canvas>
+                <div class="volume-container">
+                  <div class="bar level0"></div>
                 </div>
               </div>
             </div>
-            <video autoplay="" playsinline [id]="peer.key" [srcObject]="getMemberVideoStream(peer.key)"></video>
-            <audio autoplay="" playsinline  [srcObject]="getMemberAudioStream(peer.key)" ></audio>
-            <canvas class="face-detection"></canvas>
-            <div class="volume-container">
-              <div class="bar level0"></div>
-            </div>
           </div>
         </div>
-      </div>
-    </div>
-    <div class="me-container" *ngIf="!isOnlyConsumer()">
-      <div data-component="Me">
-        <div class="controls">
-          <div [ngClass]="{'button mic': true,'on':audioEnabled, 'off':!audioEnabled}" (click)="toggleAudio()"></div>
-          <div [ngClass]="{'button webcam': true,'on':videoEnabled, 'off':!videoEnabled}" (click)="toggleVideo()"></div>
-          <div class="button share off" (click)="printConsumers()" ></div>
-          <div class="button stats off" (click)="restartIce()" ></div>
-        </div>
-        <div data-component="PeerView">
-          <div class="info">
-            <div class="icons">
-              <div class="icon info"></div>
-              <div class="icon stats"></div>
+        <div class="me-container" *ngIf="!isOnlyConsumer()">
+          <div data-component="Me">
+            <div class="controls">
+              <div [ngClass]="{'button mic': true,'on':audioEnabled, 'off':!audioEnabled}" (click)="toggleAudio()"></div>
+              <div [ngClass]="{'button webcam': true,'on':videoEnabled, 'off':!videoEnabled}" (click)="toggleVideo()"></div>
+              <div class="button share off" (click)="startBroadcastingSession()" ></div>
+              <div class="button stats off" (click)="endBroadcastingSession()" ></div>
             </div>
-            <div class="peer is-me">
+            <div data-component="PeerView">
+              <div class="info">
+                <div class="icons">
+                  <div class="icon info" (click)="printConsumers()"></div>
+                  <div class="icon stats"></div>
+                </div>
+                <div class="peer is-me">
               <span class="display-name editable" tabindex="0">
-                {{ user_id }}
+                {{ meetingMember.nickname }}
               </span>
-              <div class="row">
-                <span class="device-icon chrome"></span>
-                <span class="device-version"></span>
+                  <div class="row">
+                    <span class="device-icon chrome"></span>
+                    <span class="device-version"></span>
+                  </div>
+                </div>
+              </div>
+              <video autoplay class="is-me" playsinline [srcObject]="getLocalStream()" *ngIf="videoEnabled"></video>
+              <audio autoplay playsinline></audio>
+              <canvas class="face-detection is-me"></canvas>
+              <div class="volume-container">
+                <div class="bar level0"></div>
               </div>
             </div>
           </div>
-          <video autoplay class="is-me" playsinline [srcObject]="getLocalStream()" *ngIf="videoEnabled"></video>
-          <audio autoplay playsinline></audio>
-          <canvas class="face-detection is-me"></canvas>
-          <div class="volume-container">
-            <div class="bar level0"></div>
-          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
+  </mat-sidenav-content>
+</mat-sidenav-container>
+<!--<mat-drawer-container class="example-container">-->
+<!--  <mat-drawer mode="side" opened>Drawer content</mat-drawer>-->
+<!--  <mat-drawer-content>-->
+<!--    -->
+<!--  </mat-drawer-content>-->
+<!--</mat-drawer-container>-->
+
+
 
 
 

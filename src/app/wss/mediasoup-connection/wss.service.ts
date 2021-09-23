@@ -3,22 +3,32 @@ import { Socket } from 'ngx-socket-io';
 import { Observable } from 'rxjs';
 
 import { NGXLogger } from 'ngx-logger';
-import { IMemberIdentifier } from '../meetings/types/defines';
-import { environment } from '../../environments/environment';
-import { MediasoupSocket } from '../meetings/types/custom-sockets';
+import { IMemberIdentifier } from '../../meetings/types/defines';
+import { environment } from '../../../environments/environment';
+import { MediasoupSocket } from '../../meetings/types/custom-sockets';
 
 @Injectable({
   providedIn: 'root',
 })
 export class WssService {
+  private _socket!: MediasoupSocket;
   get socket(): MediasoupSocket {
     return this._socket;
   }
-  private apiMediasoup =
-    environment.mediasoupServer.api.url +
-    'websocket/message-connection-handler';
-
-  constructor(private logger: NGXLogger, private _socket: MediasoupSocket) {}
+  public setSocket(sessionId: string, userId: string): void {
+    this._socket = new Socket({
+      url: environment.mediasoupServer.wssUrl,
+      options: {
+        query: {
+          token: localStorage.getItem(environment.token.authHeaderKey),
+          session_id: sessionId,
+          user_id: userId,
+        },
+      },
+    });
+    // this._socket.connect();
+  }
+  constructor(private logger: NGXLogger) {}
 
   async requestMediaConfigure(): Promise<any> {
     return this._socket.emit('mediaconfigure', '');
@@ -61,11 +71,13 @@ export class WssService {
   onRequestMedia(): Observable<any> {
     return this._socket.fromEvent('media');
   }
-
+  onProducerMediaDeviceToggle(): Observable<any> {
+    return this.socket.fromEvent('toggleDevice');
+  }
   async joinRoom(payload: any): Promise<any> {
     return new Promise<any>((resolve, reject) => {
       try {
-        console.warn(`Emit event ${payload.action}:`);
+        //console.warn(`Emit event ${payload.action}:`);
         this._socket.emit('joinRoom', payload, (response: any) => {
           resolve(response);
         });
@@ -78,7 +90,7 @@ export class WssService {
   async messageWithCallback(event: string, payload: any): Promise<any> {
     return new Promise<any>((resolve, reject) => {
       try {
-        console.warn(`Emit event ${event}:`);
+        //console.warn(`Emit event ${event}:`);
         this._socket.emit(event, payload, (response: any) => {
           resolve(response);
         });
@@ -88,16 +100,15 @@ export class WssService {
       }
     });
   }
-
   async requestMedia(payload: any): Promise<any> {
     return new Promise<any>((resolve, reject) => {
       try {
-        console.warn(`Emit event ${payload.action}:`);
+        //console.warn(`Emit event ${payload.action}:`);
         this._socket.emit('media', payload, (response: any) => {
           console.log(
             `success emitting event: media, ACK from server: ${payload.action}`
           );
-          console.warn(`Response from ${payload.action}:`, response);
+          //console.warn(`Response from ${payload.action}:`, response);
           resolve(response);
         });
       } catch (e) {

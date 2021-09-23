@@ -8,6 +8,9 @@ export const environment = {
   user_id: uuid.v4(),
   production: false,
   name: 'development',
+  token: {
+    authHeaderKey: 'Authorization',
+  },
   apiServer: {
     api: {
       url: 'http://127.0.0.1:3000/api/',
@@ -17,6 +20,8 @@ export const environment = {
         getMeetingMembers: 'meetings/:meetingId/members',
         updateMeetingMember: 'meetings/:meetingId/members/memberId',
         endMeetingSession: 'meetings/:meetingId',
+        startBroadcastingSession: 'meetings/:meetingId/broadcasting/start',
+        endBroadcastingSession: 'meetings/:meetingId/broadcasting/end',
       },
     },
     wss: {
@@ -135,6 +140,6 @@ export const environment = {
     ],
     iceCandidatePoolSize: 10,
   },
-  token: 'Authorization',
+
   lsGuessName: 'meeting.guessName',
 };

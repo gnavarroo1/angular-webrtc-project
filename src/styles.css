@@ -4,8 +4,9 @@
   box-sizing: border-box;
   outline: none;
 }
+
 .mat-typography{
-  background: #141e30;
+  background: #141e30!important;
 }
 head {
   display: none;

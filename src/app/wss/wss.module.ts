@@ -1,18 +1,21 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {WssService} from "./wss.service";
-import {MediasoupService} from "./wss.mediasoup";
-
-
+import { WssService } from './mediasoup-connection/wss.service';
+import { MediasoupService } from './wss.mediasoup';
+import { MeetingService } from './meeting.service';
+import { ApiGatewayService } from './api-connection/api-gateway.service';
+import { ApiRestService } from './api-connection/api-rest.service';
 
 @NgModule({
   declarations: [],
-  imports: [
-    CommonModule
+  imports: [CommonModule],
+  providers: [
+    WssService,
+    MediasoupService,
+    MeetingService,
+    ApiGatewayService,
+    ApiRestService,
   ],
-  providers:[
-    WssService,MediasoupService
-  ],
-
+  exports: [],
 })
-export class WssModule { }
+export class WssModule {}

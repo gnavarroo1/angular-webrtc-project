@@ -1,3 +1,11 @@
+.example-container {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #141e30!important;
+}
 #mediasoup-demo-app-container {
   height: 100%;
   width: 100%;
@@ -527,6 +535,80 @@
   -ms-transition-duration: .15s;
   transition-duration: .15s;
 }
+
+#mediasoup-demo-app-container [data-component='PeerView'] > .info > .icons > .button {
+  -webkit-box-flex: 1;
+  -moz-box-flex: 1;
+  -o-box-flex: 1;
+  box-flex: 1;
+  -webkit-flex: 0 0 auto;
+  -ms-flex: 0 0 auto;
+  flex: 0 0 auto;
+  margin: 4px;
+  margin-left: 0;
+  border-radius: 2px;
+  pointer-events: auto;
+  background-position: center;
+  -webkit-background-size: 75%;
+  -moz-background-size: 75%;
+  background-size: 75%;
+  background-repeat: no-repeat;
+  background-color: rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  -webkit-transition-property: opacity, background-color;
+  -moz-transition-property: opacity, background-color;
+  -o-transition-property: opacity, background-color;
+  -ms-transition-property: opacity, background-color;
+  transition-property: opacity, background-color;
+  -webkit-transition-duration: .15s;
+  -moz-transition-duration: .15s;
+  -o-transition-duration: .15s;
+  -ms-transition-duration: .15s;
+  transition-duration: .15s;
+}
+@media (min-device-width: 721px) {
+  #mediasoup-demo-app-container [data-component='PeerView'] > .info > .icons > .button {
+    width: 28px;
+    height: 28px;
+    opacity: .85;
+    -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=85)";
+    filter: alpha(opacity=85);
+  }
+}
+
+
+#mediasoup-demo-app-container [data-component='PeerView'] > .info > .icons > .icon.info:not(.on) {
+  background-image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSJub25lIiBkPSJNMCAwaDI0djI0SDBWMHoiLz48cGF0aCBmaWxsPSIjZmZmIiBkPSJNMTEgN2gydjJoLTJ6bTAgNGgydjZoLTJ6bTEtOUM2LjQ4IDIgMiA2LjQ4IDIgMTJzNC40OCAxMCAxMCAxMCAxMC00LjQ4IDEwLTEwUzE3LjUyIDIgMTIgMnptMCAxOGMtNC40MSAwLTgtMy41OS04LThzMy41OS04IDgtOCA4IDMuNTkgOCA4LTMuNTkgOC04IDh6Ii8+PC9zdmc+Cg==);
+}
+#mediasoup-demo-app-container [data-component='PeerView'] > .info > .icons > .button.mic.off {
+  background-image: url(data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjRkZGRkZGIiBmaWxsLW9wYWNpdHk9IjAuODUiIGhlaWdodD0iMzYiIHZpZXdCb3g9IjAgMCAyNCAyNCIgd2lkdGg9IjM2IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogICAgPHBhdGggZD0iTTAgMGgyNHYyNEgwem0wIDBoMjR2MjRIMHoiIGZpbGw9Im5vbmUiLz4KICAgIDxwYXRoIGQ9Ik0xOSAxMWgtMS43YzAgLjc0LS4xNiAxLjQzLS40MyAyLjA1bDEuMjMgMS4yM2MuNTYtLjk4LjktMi4wOS45LTMuMjh6bS00LjAyLjE3YzAtLjA2LjAyLS4xMS4wMi0uMTdWNWMwLTEuNjYtMS4zNC0zLTMtM1M5IDMuMzQgOSA1di4xOGw1Ljk4IDUuOTl6TTQuMjcgM0wzIDQuMjdsNi4wMSA2LjAxVjExYzAgMS42NiAxLjMzIDMgMi45OSAzIC4yMiAwIC40NC0uMDMuNjUtLjA4bDEuNjYgMS42NmMtLjcxLjMzLTEuNS41Mi0yLjMxLjUyLTIuNzYgMC01LjMtMi4xLTUuMy01LjFINWMwIDMuNDEgMi43MiA2LjIzIDYgNi43MlYyMWgydi0zLjI4Yy45MS0uMTMgMS43Ny0uNDUgMi41NC0uOUwxOS43MyAyMSAyMSAxOS43MyA0LjI3IDN6Ii8+Cjwvc3ZnPgo=);
+  background-color: rgba(212,34,65,0.7);
+}
+#mediasoup-demo-app-container [data-component='PeerView']   > .info > .icons > .button.mic.on {
+  background-image: url(data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjMDAwMDAwIiBoZWlnaHQ9IjM2IiB2aWV3Qm94PSIwIDAgMjQgMjQiIHdpZHRoPSIzNiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgIDxwYXRoIGQ9Ik0xMiAxNGMxLjY2IDAgMi45OS0xLjM0IDIuOTktM0wxNSA1YzAtMS42Ni0xLjM0LTMtMy0zUzkgMy4zNCA5IDV2NmMwIDEuNjYgMS4zNCAzIDMgM3ptNS4zLTNjMCAzLTIuNTQgNS4xLTUuMyA1LjFTNi43IDE0IDYuNyAxMUg1YzAgMy40MSAyLjcyIDYuMjMgNiA2LjcyVjIxaDJ2LTMuMjhjMy4yOC0uNDggNi0zLjMgNi02LjcyaC0xLjd6Ii8+CiAgICA8cGF0aCBkPSJNMCAwaDI0djI0SDB6IiBmaWxsPSJub25lIi8+Cjwvc3ZnPg==);
+}
+
+#mediasoup-demo-app-container [data-component='PeerView']   > .info > .icons > .button.on {
+  background-color: rgba(255,255,255,0.85);
+}
+
+#mediasoup-demo-app-container  [data-component='PeerView']  >  .info > .icons > .button.webcam.off {
+  background-image: url(data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjRkZGRkZGIiBmaWxsLW9wYWNpdHk9IjAuNSIgaGVpZ2h0PSIzNiIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMzYiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgICA8cGF0aCBkPSJNMCAwaDI0djI0SDB6IiBmaWxsPSJub25lIi8+CiAgICA8cGF0aCBkPSJNMTcgMTAuNVY3YzAtLjU1LS40NS0xLTEtMUg0Yy0uNTUgMC0xIC40NS0xIDF2MTBjMCAuNTUuNDUgMSAxIDFoMTJjLjU1IDAgMS0uNDUgMS0xdi0zLjVsNCA0di0xMWwtNCA0eiIvPgo8L3N2Zz4K);
+}
+
+#mediasoup-demo-app-container [data-component='PeerView']   >  .info > .icons > .button.webcam.on {
+  background-image: url(data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjMDAwMDAwIiBoZWlnaHQ9IjM2IiB2aWV3Qm94PSIwIDAgMjQgMjQiIHdpZHRoPSIzNiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgIDxwYXRoIGQ9Ik0wIDBoMjR2MjRIMHoiIGZpbGw9Im5vbmUiLz4KICAgIDxwYXRoIGQ9Ik0xNyAxMC41VjdjMC0uNTUtLjQ1LTEtMS0xSDRjLS41NSAwLTEgLjQ1LTEgMXYxMGMwIC41NS40NSAxIDEgMWgxMmMuNTUgMCAxLS40NSAxLTF2LTMuNWw0IDR2LTExbC00IDR6Ii8+Cjwvc3ZnPg==);
+}
+
+
+#mediasoup-demo-app-container [data-component='PeerView'] > .info > .icons > .icon.stats {
+  background-image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSIjZmZmIiBkPSJNOSAxN0g3di03aDJ2N3ptNCAwaC0yVjdoMnYxMHptNCAwaC0ydi00aDJ2NHptMi41IDIuMWgtMTVWNWgxNXYxNC4xem0wLTE2LjFoLTE1Yy0xLjEgMC0yIC45LTIgMnYxNGMwIDEuMS45IDIgMiAyaDE1YzEuMSAwIDItLjkgMi0yVjVjMC0xLjEtLjktMi0yLTJ6Ii8+PHBhdGggZmlsbD0ibm9uZSIgZD0iTTAgMGgyNHYyNEgweiIvPjwvc3ZnPgo=);
+}
+
+
+
+
+
 @media (min-device-width: 721px) {
   #mediasoup-demo-app-container [data-component='PeerView'] > .info > .icons > .icon {
     width: 28px;
@@ -817,6 +899,41 @@
 }
 #mediasoup-demo-app-container [data-component='PeerView'] > .info > .peer > span.display-name:not(.editable) {
   cursor: default;
+}
+
+
+.wrapper-v{
+  position: relative;
+}
+.label-name{
+  background-color: white;
+  position: absolute;
+  padding: .25rem;
+  bottom: 0;
+  margin: .55rem .15rem;
+}
+
+.label-timestamp{
+  background-color: white;
+  position: absolute;
+  padding: .25rem;
+  bottom: 0;
+  right: 0;
+  margin: .55rem .15rem;
+}
+.more-button{
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: none;
+  border: none;
+}
+.other-button{
+  background-color: white;
+  position: absolute;
+  padding: .25rem;
+  top: 0;
+  margin: .55rem .15rem;
 }
 
 /*</editor-fold>*/
