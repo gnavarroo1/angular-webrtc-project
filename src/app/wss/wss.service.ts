@@ -9,7 +9,9 @@ import { IMemberIdentifier } from '../../types/helper';
   providedIn: 'root',
 })
 export class WssService {
-  constructor(private logger: NGXLogger, private socket: Socket) {}
+  constructor(private logger: NGXLogger, private socket: Socket) {
+    socket.disconnect();
+  }
 
   async requestMediaConfigure(): Promise<any> {
     return this.socket.emit('mediaconfigure', '');

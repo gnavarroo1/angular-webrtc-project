@@ -1,5 +1,10 @@
-import { NgModule } from '@angular/core';
+
 import { BrowserModule } from '@angular/platform-browser';
+
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { FlexLayoutModule } from '@angular/flex-layout';
+import { NgModule, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { AngularMaterialModule } from './angular-material.module';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -8,7 +13,7 @@ import { HttpClientModule } from '@angular/common/http';
 import { TestModule } from './core/test/test.module';
 import { SocketIoModule } from 'ngx-socket-io';
 import { environment } from '../environments/environment';
-import * as uuid from 'uuid';
+
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { MatCardModule } from '@angular/material/card';
@@ -17,11 +22,19 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { LayoutModule } from '@angular/cdk/layout';
 import { ClipboardModule } from 'ngx-clipboard';
+import { LogInComponent } from './components/log-in/log-in.component';
+import { RegisterComponent } from './components/register/register.component';
+import { LobbyComponent } from './components/lobby/lobby.component';
 @NgModule({
-  declarations: [AppComponent],
+  declarations: [AppComponent, LogInComponent, RegisterComponent, LobbyComponent],
   imports: [
+
+    FormsModule,
+    ReactiveFormsModule,
+    FlexLayoutModule,
     BrowserModule,
     BrowserAnimationsModule,
+    AngularMaterialModule,
     AppRoutingModule,
     ClipboardModule,
     HttpClientModule,
@@ -45,5 +58,6 @@ import { ClipboardModule } from 'ngx-clipboard';
   ],
   providers: [],
   bootstrap: [AppComponent],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
 export class AppModule {}

@@ -10,9 +10,16 @@
       <div class="room-link">
         <a class="link" rel="noopener noreferrer" target="_blank" (click)="getMeetingLink()" *ngIf="!isOnlyConsumer()">Meeting link</a>
       </div>
+      //--
       <div class="room-link">
         <a class="link" rel="noopener noreferrer" target="_blank" (click)="getBroadcastingLink()" *ngIf="!isOnlyConsumer()">Broadcasting link</a>
       </div>
+      //--
+      <div class="room-link">
+        <a class="link" rel="noopener noreferrer" target="_blank" (click)="addPeer()" *ngIf="!isOnlyConsumer()">Add Peer</a>
+      </div>
+      /--
+
     </div>
     <div data-component="Peers">
       <div class="peer-container" *ngFor="let peer of peers | keyvalue" >

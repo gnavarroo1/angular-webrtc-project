@@ -1,0 +1,30 @@
+<div class="login-wrapper" fxLayout="row" fxLayoutAlign="center center">
+
+  <mat-card class="box">
+    <mat-card-header>
+      <mat-card-title>Log in</mat-card-title>
+    </mat-card-header>
+
+    <form class="example-form" [formGroup]="form" (ngSubmit)="onSubmit()">
+      <mat-card-content>
+        <mat-form-field class="example-full-width">
+          <input matInput type="email" placeholder="Email" formControlName="email">
+
+        </mat-form-field>
+
+        <div *ngIf="submitted && email.errors" class="invalid-feedback">
+          <div *ngIf="submitted && email.errors.required">Username is required</div>
+        </div>
+
+        <mat-form-field class="example-full-width">
+          <input matInput placeholder="Password" type="password" formControlName="password">
+        </mat-form-field>
+        <div class="field-message" *ngIf="password.errors?.passwordStrength">
+          Your password must have lower case, upper case and numeric characters.
+        </div>
+      </mat-card-content>
+      <button [disabled]="loading" mat-stroked-button color="accent" class="btn-block">Log in</button>
+    </form>
+  </mat-card>
+
+</div>

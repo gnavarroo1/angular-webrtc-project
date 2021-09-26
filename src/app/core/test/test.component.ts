@@ -1,12 +1,14 @@
-import { Component, OnInit } from '@angular/core';
-import { NGXLogger } from 'ngx-logger';
-import { MediasoupService } from '../../wss/wss.mediasoup';
-import { environment } from '../../../environments/environment';
-import { animate, style, transition, trigger } from '@angular/animations';
-import { IMemberIdentifier } from '../../../types/helper';
-import { ActivatedRoute } from '@angular/router';
-import { ClipboardService } from 'ngx-clipboard';
-import { MemberType } from '../../../types/enums';
+import {Component, OnInit} from '@angular/core';
+import {NGXLogger} from 'ngx-logger';
+import {MediasoupService} from '../../wss/wss.mediasoup';
+import {environment} from '../../../environments/environment';
+import {animate, style, transition, trigger} from '@angular/animations';
+import {IMemberIdentifier} from '../../../types/helper';
+import {ActivatedRoute} from '@angular/router';
+import {ClipboardService} from 'ngx-clipboard';
+import {MemberType} from '../../../types/enums';
+import * as uuid from 'uuid';
+
 
 @Component({
   selector: 'app-test',
@@ -109,6 +111,11 @@ export class TestComponent implements OnInit {
     return this.mediasoupService.getMemberAudioStream(key);
   }
 
+  addPeer()
+  {
+    this.peers.set(uuid.v4(),{id: uuid.v4(),kind: MemberType.PRODUCER})
+  }
+
   async toggleAudio(): Promise<void> {
     if (this.audioEnabled) {
       await this.mediasoupService.producerAudioPause(environment.user_id);
@@ -133,11 +140,15 @@ export class TestComponent implements OnInit {
     }
   }
   async getMeetingLink() {
+    console.log(window.location.origin + '/meetings/join/' + environment.testRoom);
     this.clipboard.copyFromContent(
       window.location.origin + '/meetings/join/' + environment.testRoom
+
+
     );
   }
   async getBroadcastingLink() {
+    console.log(window.location.origin + '/meetings/broadcasting/' + environment.testRoom);
     this.clipboard.copyFromContent(
       window.location.origin + '/meetings/broadcasting/' + environment.testRoom
     );
