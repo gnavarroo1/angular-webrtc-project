@@ -15,8 +15,6 @@ import { environment } from '../../environments/environment';
 import { IceParameters, Transport } from 'mediasoup-client/lib/Transport';
 import { Producer } from 'mediasoup-client/lib/Producer';
 import { Consumer, ConsumerOptions } from 'mediasoup-client/lib/Consumer';
-import { stat } from 'fs';
-import { endianness } from 'os';
 import deviceInfo from '../core/helpers/deviceInfo.helper';
 import { NGXLogger } from 'ngx-logger';
 const PC_PROPRIETARY_CONSTRAINTS = {
@@ -46,6 +44,7 @@ export class MediasoupService {
               if (this.skipConsume) {
                 reject(403, 'Not consuming');
               }
+              // eslint-disable-next-line no-useless-catch
               try {
                 const {
                   peerId,

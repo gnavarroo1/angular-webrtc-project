@@ -14,6 +14,7 @@ import { ClipboardService } from 'ngx-clipboard';
 import { MeetingService } from '../../wss/meeting.service';
 import { TokenManagerService } from '../services/token-manager.service';
 import Swal from 'sweetalert2';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-test',
@@ -52,6 +53,7 @@ export class TestComponent implements OnInit {
 
   constructor(
     private readonly logger: NGXLogger,
+    private authService: AuthService,
     private tokenManagerService: TokenManagerService,
     private meetingService: MeetingService,
     private mediasoupService: MediasoupService,
@@ -60,9 +62,18 @@ export class TestComponent implements OnInit {
   ) {}
 
   async ngOnInit(): Promise<void> {
-    console.log(MemberType[MemberType.CONSUMER]);
-    const authToken = this.tokenManagerService.hasAuthToken();
-    if (authToken.hasAuthToken && !authToken.isExpired) {
+    const result = this.tokenManagerService.hasAuthToken();
+    console.log(result);
+    if (!result.hasAuthToken || result.isExpired) {
+      await this.authService
+        .createTemporalUser()
+        .toPromise()
+        .then((data) => {
+          console.log(data);
+          this.tokenManagerService.saveAuthToken(data.accessToken);
+        });
+    } else {
+      const authToken = this.tokenManagerService.hasAuthToken();
       this.userId = authToken.user.isGuest
         ? authToken.user.sessionId
         : authToken.user.sub;
@@ -80,6 +91,7 @@ export class TestComponent implements OnInit {
         memberType: MemberType[this.memberType],
       };
       await new Promise((resolve, reject) => {
+      new Promise((resolve, reject) => {
         if (!snapshotData.newMeeting) {
           if (params.id) {
             this.meetingService
