@@ -11,7 +11,7 @@ import {MediasoupService} from "./wss.mediasoup";
     CommonModule
   ],
   providers:[
-    WssService,MediasoupService
+    // WssService,MediasoupService
   ],
 
 })
