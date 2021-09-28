@@ -6,7 +6,6 @@ import { SignalingSocket } from '../../types/custom-sockets';
   providedIn: 'root',
 })
 export class SignalingService {
-  private socketId: ReplaySubject<string> = new ReplaySubject<string>();
   constructor(private socket: SignalingSocket) {
     // this.socket.connect();
     this.socket.on('connect', () => {
@@ -17,43 +16,44 @@ export class SignalingService {
     });
   }
 
+  get socketId() {
+    return this.socket.ioSocket.id;
+  }
+  public onConnect(): Observable<string> {
+    return this.socket.fromEvent('connect');
+  }
+  public joinMeeting(payload: {
+    meetingMemberId: string;
+    meetingId: string;
+  }): void {
+    this.socket.emit('joinMeeting', payload);
+  }
+  public onMemberJoin(): Observable<any> {
+    return this.socket.fromEvent('memberJoin');
+  }
+  public onMemberDisconnect(): Observable<any> {
+    return this.socket.fromEvent('memberDisconnect');
+  }
+
   public getSocketId(): Observable<string> {
     return this.socketId.asObservable();
   }
 
-  handleConnection(meetingId: string) {
-    this.socket.emit('create or join', { room: meetingId });
+  public onOffer(): Observable<any> {
+    return this.socket.fromEvent('offer');
+  }
+  public onAnswer(): Observable<any> {
+    return this.socket.fromEvent('answer');
+  }
+  public onIceCandidate(): Observable<any> {
+    return this.socket.fromEvent('iceCandidate');
   }
 
-  onCreated(): Observable<any> {
-    return this.socket.fromEvent('created');
-  }
-
-  onClientJoin(): Observable<any> {
-    return this.socket.fromEvent('join');
-  }
-
-  onClientJoined(): Observable<any> {
-    return this.socket.fromEvent('joined');
-  }
-
-  handleHandshakeEventEmit(payload: {
-    type: string;
-    message: RTCIceCandidate | RTCSessionDescriptionInit | string;
-  }): void {
-    this.socket.emit('handshake-message', payload);
-  }
-
-  //payload:{type:string,message:RTCIceCandidate | RTCSessionDescriptionInit | string}
-  handleOnHandshakeEvent(): Observable<any> {
-    return this.socket.fromEvent('handshake-message');
-  }
-
-  offer(payload: { id: string; target: string; sdp: unknown }): void {
+  offer(payload: { id: string; target: string; sdp: any }): void {
     this.socket.emit('offer', payload);
   }
 
-  answer(payload: { id: string; target: string; sdp: unknown }): void {
+  answer(payload: { id: string; target: string; sdp: any }): void {
     this.socket.emit('answer', payload);
   }
 
@@ -62,8 +62,7 @@ export class SignalingService {
     target: string;
     candidate: RTCIceCandidate;
   }): void {
-    console.log('ICE CANDIDATE EMIT => ', payload);
-    this.socket.emit('ice-candidate', payload);
+    this.socket.emit('iceCandidate', payload);
   }
 
   getBroadcast(type: string): Observable<any> {
@@ -73,18 +72,4 @@ export class SignalingService {
   broadcast(event: string, payload: any) {
     this.socket.emit(event, payload);
   }
-
-  // disconnect(){
-  //   console.log(this.socket.ioSocket)
-  //   this.socket.disconnect();
-  //   this.socketId.complete()
-  // }
-  // joinMeeting(payload: {
-  //   id:string,
-  //   roomId: string,
-  //   alias:string | undefined | null,
-  // }){
-  //   console.log('USER JOINING MEETING => '+ payload.roomId)
-  //   this.socket.emit('join-meeting',{ ...payload } );
-  // }
 }

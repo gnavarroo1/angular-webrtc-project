@@ -1,12 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { NGXLogger } from 'ngx-logger';
-import { MediasoupService } from '../../wss/wss.mediasoup';
-import { environment } from '../../../environments/environment';
 import { animate, style, transition, trigger } from '@angular/animations';
 import {
   IMemberIdentifier,
   MeetingDto,
   MeetingMemberDto,
+  MeetingServiceType,
   MemberType,
 } from '../../meetings/types/defines';
 import { ActivatedRoute } from '@angular/router';
@@ -50,13 +49,16 @@ export class TestComponent implements OnInit {
   public memberType!: MemberType;
   meetingId!: string;
   isBroadcasting = false;
-
+  isValidMeeting = false;
+  localStream: MediaStream | undefined;
+  hasError = false;
+  errorMessage = '';
   constructor(
     private readonly logger: NGXLogger,
     private authService: AuthService,
     private tokenManagerService: TokenManagerService,
     private meetingService: MeetingService,
-    private mediasoupService: MediasoupService,
+    // private mediasoupService: MediasoupService,
     private activatedRoute: ActivatedRoute,
     private clipboard: ClipboardService
   ) {}
@@ -72,91 +74,100 @@ export class TestComponent implements OnInit {
           console.log(data);
           this.tokenManagerService.saveAuthToken(data.accessToken);
         });
-    } else {
-      const authToken = this.tokenManagerService.hasAuthToken();
-      this.userId = authToken.user.isGuest
-        ? authToken.user.sessionId
-        : authToken.user.sub;
+    }
+    const authToken = this.tokenManagerService.hasAuthToken();
+    this.userId = authToken.user.isGuest
+      ? authToken.user.sessionId
+      : authToken.user.sub;
 
-      const snapshotData = this.activatedRoute.snapshot.data;
-      const params = this.activatedRoute.snapshot.params;
-      this.memberType = snapshotData.memberType;
-      this.meetingMember = {
-        isGuest: authToken.user.isGuest,
-        userId: this.userId,
-        sessionUserId: authToken.user.sessionId,
-        nickname: authToken.user.username
-          ? authToken.user.username
-          : this.userId,
-        memberType: MemberType[this.memberType],
-      };
-      await new Promise((resolve, reject) => {
-      new Promise((resolve, reject) => {
-        if (!snapshotData.newMeeting) {
-          if (params.id) {
-            this.meetingService
-              .validateMeeting(params.id)
-              .then((data: MeetingDto) => {
-                this.meetingId = params.id;
-                resolve(data);
-                console.warn('meeting', data);
-              })
-              .catch((err) => {
-                reject(err);
-                console.error(err.message, err.stack);
-              });
-          }
-        } else {
+    const snapshotData = this.activatedRoute.snapshot.data;
+    const params = this.activatedRoute.snapshot.params;
+    this.memberType = snapshotData.memberType;
+    this.meetingMember = {
+      isGuest: authToken.user.isGuest,
+      userId: this.userId,
+      sessionUserId: authToken.user.sessionId,
+      nickname: authToken.user.username ? authToken.user.username : this.userId,
+      memberType: MemberType[this.memberType],
+    };
+    new Promise((resolve, reject) => {
+      if (!snapshotData.newMeeting) {
+        if (params.id) {
           this.meetingService
-            .createMeeting(authToken.user)
+            .validateMeeting(params.id)
             .then((data: MeetingDto) => {
-              console.warn('NEW MEETING', data);
-              this.meetingId = data._id;
+              this.meetingId = params.id;
               resolve(data);
+              console.warn('meeting', data);
             })
             .catch((err) => {
-              console.error(err.message, err.stack);
               reject(err);
+              console.error(err.message, err.stack);
             });
         }
-      }).then(async (data) => {
-        console.log('after meeting validation events', data);
-        const meeting = data as MeetingDto;
-        this.isBroadcasting = meeting.isBroadcasting;
-        this.meetingMember.meetingId = meeting._id;
+      } else {
+        this.meetingService
+          .createMeeting(authToken.user)
+          .then((data: MeetingDto) => {
+            console.warn('NEW MEETING', data);
+            this.meetingId = data._id;
+            resolve(data);
+          })
+          .catch((err) => {
+            console.error(err.message, err.stack);
+            reject(err);
+          });
+      }
+    }).then(async (data) => {
+      console.log('after meeting validation events', data);
+      const meeting = data as MeetingDto;
+      this.isValidMeeting = !!meeting._id;
+      this.isBroadcasting = meeting.isBroadcasting;
+      this.meetingMember.meetingId = meeting._id;
+      if (
+        (this.memberType === MemberType.CONSUMER && meeting.isBroadcasting) ||
+        this.memberType === MemberType.PRODUCER ||
+        this.memberType === MemberType.BOTH
+      ) {
+        //Validate local stream and then initialize the connection to the meeting
+        this.meetingService
+          .getLocalMediaDevices()
+          .then(async () => {
+            const result = await this.meetingService.addMeetingMember(
+              this.meetingMember
+            );
+            if (result.success) {
+              const data = result.payload;
+              this.meetingMember._id = data._id;
+              this.meetingService.meetingMember = this.meetingMember;
+              this.meetingService.meetingServiceType = MeetingServiceType.MESH;
+              // this.mediasoupService.session_id = meeting._id;
+              // this.mediasoupService.user_id = this.meetingMember.sessionUserId;
+              // this.mediasoupService.initWssService();
 
-        if (
-          (this.memberType === MemberType.CONSUMER && meeting.isBroadcasting) ||
-          this.memberType === MemberType.PRODUCER ||
-          this.memberType === MemberType.BOTH
-        ) {
-          const result = await this.meetingService.addMeetingMember(
-            this.meetingMember
-          );
-          if (result.success) {
-            const data = result.payload;
-            this.meetingMember._id = data._id;
-            this.mediasoupService.session_id = meeting._id;
-            this.mediasoupService.user_id = this.meetingMember.sessionUserId;
-            this.mediasoupService.initWssService();
-            this.eventHandlers();
-          } else {
-            const msg = result.payload;
-            window.location.href = 'https://www.google.com/nonexistent';
-            //handle disconnections
-          }
-        } else {
-          window.location.href = 'https://www.google.com/nonexistent';
-        }
-      });
-    } else {
-      console.warn('notoken');
-    }
+              this.eventHandlers();
+              this.meetingService.initMeeting();
+            } else {
+              const msg = result.payload;
+              window.location.href = 'https://www.google.com/nonexistent';
+              //handle disconnections
+            }
+          })
+          .catch((err) => {
+            console.log(err);
+          });
+      } else {
+        window.location.href = 'https://www.google.com/nonexistent';
+      }
+    });
 
     //TODO VALIDATE LINK ID
   }
 
   eventHandlers() {
+    this.meetingService.localStream$.subscribe((value) => {
+      this.localStream = value;
+    });
     this.meetingService.isBroadcasting$.subscribe((value) => {
       console.log(value);
       this.isBroadcasting = value;
@@ -204,31 +215,31 @@ export class TestComponent implements OnInit {
           });
       }
     });
-    this.mediasoupService.onConnectionReady().subscribe(async (data) => {
-      this.mediasoupService.session_id = this.meetingId;
-      if (data) {
-        await this.mediasoupService
-          .joinRoom(this.memberType)
-          .then(async () => {
-            // await this.mediasoupService.initCommunication();
-          })
-          .catch((err) => {
-            this.logger.error('TEST COMPONENT', err);
-          });
-      }
-    });
+    // this.mediasoupService.onConnectionReady().subscribe(async (data) => {
+    //   this.mediasoupService.session_id = this.meetingId;
+    //   if (data) {
+    //     await this.mediasoupService
+    //       .joinRoom(this.memberType)
+    //       .then(async () => {
+    //         // await this.mediasoupService.initCommunication();
+    //       })
+    //       .catch((err) => {
+    //         this.logger.error('TEST COMPONENT', err);
+    //       });
+    //   }
+    // });
     // this.mediasoupService.onAudioEnabled().subscribe((data) => {});
     // this.mediasoupService.onVideoEnabled().subscribe((data) => {});
     //
-    this.mediasoupService.getConsumers().subscribe((peers) => {
-      this.producerPeers = new Map<string, IMemberIdentifier>();
-      this.peers = peers;
-      for (const [key, value] of peers) {
-        if (value.kind != MemberType.CONSUMER) {
-          this.producerPeers.set(key, value);
-        }
-      }
-    });
+    // this.mediasoupService.getConsumers().subscribe((peers) => {
+    //   this.producerPeers = new Map<string, IMemberIdentifier>();
+    //   this.peers = peers;
+    //   for (const [key, value] of peers) {
+    //     if (value.kind != MemberType.CONSUMER) {
+    //       this.producerPeers.set(key, value);
+    //     }
+    //   }
+    // });
   }
   leaveMeetingSession() {
     window.location.href = 'https://about.google/';
@@ -258,55 +269,53 @@ export class TestComponent implements OnInit {
   }
 
   pauseProducerAudio(): void {
-    this.mediasoupService.producerAudioPause(this.meetingMember.sessionUserId);
+    // this.mediasoupService.producerAudioPause(this.meetingMember.sessionUserId);
   }
 
   resumeProducerAudio(): void {
-    this.mediasoupService.producerAudioResume(this.meetingMember.sessionUserId);
+    // this.mediasoupService.producerAudioResume(this.meetingMember.sessionUserId);
   }
 
   getLocalStream(): MediaStream | undefined {
+    return;
     // console.log(this.mediasoupService.getStream());
 
-    return this.mediasoupService.getStream();
+    // return this.mediasoupService.getStream();
   }
   getMemberVideoStream(key: string): MediaStream | undefined {
-    return this.mediasoupService.getMemberVideoStream(key);
+    return;
+    // return this.mediasoupService.getMemberVideoStream(key);
   }
   getMemberAudioStream(key: string): MediaStream | undefined {
-    return this.mediasoupService.getMemberAudioStream(key);
+    return;
+    // return this.mediasoupService.getMemberAudioStream(key);
   }
   async restartIce(): Promise<void> {
-    this.logger.warn('TEST', this.mediasoupService.consumersAudio);
-    this.logger.warn('TEST', this.mediasoupService.consumersVideo);
+    // this.logger.warn('TEST', this.mediasoupService.consumersAudio);
+    // this.logger.warn('TEST', this.mediasoupService.consumersVideo);
   }
   async toggleAudio(): Promise<void> {
+    console.log(this.localStream?.getAudioTracks()[0]);
     if (this.audioEnabled) {
-      await this.mediasoupService.producerAudioPause(
-        this.meetingMember.sessionUserId
-      );
+      this.audioEnabled = this.meetingService.audioPause();
     } else {
-      await this.mediasoupService.producerAudioResume(
-        this.meetingMember.sessionUserId
-      );
+      this.audioEnabled = this.meetingService.audioResume();
     }
-    this.audioEnabled = !this.audioEnabled;
+    // this.audioEnabled = !this.audioEnabled;
   }
 
   async toggleVideo(): Promise<void> {
     try {
       if (this.videoEnabled) {
-        // console.log('PAUSE');
-        await this.mediasoupService.producerVideoPause(
-          this.meetingMember.sessionUserId
-        );
+        this.videoEnabled = this.meetingService.videoPause();
       } else {
         // console.log('RESUME');
-        await this.mediasoupService.producerVideoResume(
-          this.meetingMember.sessionUserId
-        );
+        // await this.mediasoupService.producerVideoResume(
+        //   this.meetingMember.sessionUserId
+        // );
+        this.videoEnabled = this.meetingService.videoResume();
       }
-      this.videoEnabled = !this.videoEnabled;
+      // this.videoEnabled = !this.videoEnabled;
     } catch (error) {
       console.error(error.message, error.stack);
     }
@@ -331,28 +340,26 @@ export class TestComponent implements OnInit {
   }
 
   async getConsumerState(userId: string) {
-    const consumerAudio = this.mediasoupService.consumersAudio.get(userId);
-    const consumerVideo = this.mediasoupService.consumersVideo.get(userId);
-    const consumer = this.mediasoupService.consumers.get(userId);
-    console.warn('consumerVideo', await consumerVideo?.getStats());
-    console.warn(
-      'consumerAudioState',
-      this.mediasoupService.getMemberVideoStream(userId)?.getTracks()
-    );
-    console.warn('consumerVideoState', consumerVideo?.paused);
-    console.warn('consumerState', consumer);
+    // const consumerAudio = this.mediasoupService.consumersAudio.get(userId);
+    // const consumerVideo = this.mediasoupService.consumersVideo.get(userId);
+    // const consumer = this.mediasoupService.consumers.get(userId);
+    // console.warn('consumerVideo', await consumerVideo?.getStats());
+    // console.warn(
+    //   'consumerAudioState',
+    //   this.mediasoupService.getMemberVideoStream(userId)?.getTracks()
+    // );
+    // console.warn('consumerVideoState', consumerVideo?.paused);
+    // console.warn('consumerState', consumer);
   }
   printConsumers(): void {
     this.logger.warn(this.producerPeers);
   }
-  startBroadcast() {}
-  endBroadcast() {}
 
   globalAudioToggle(key: string) {
-    this.mediasoupService.globalToggleMedia(key, 'audio');
+    // this.mediasoupService.globalToggleMedia(key, 'audio');
   }
   globalVideoToggle(key: string) {
-    this.mediasoupService.globalToggleMedia(key, 'video');
+    // this.mediasoupService.globalToggleMedia(key, 'video');
   }
 
   startBroadcastingSession() {
@@ -366,5 +373,18 @@ export class TestComponent implements OnInit {
       .endBroadcastingSession(this.meetingMember)
       .then(() => {})
       .catch(() => {});
+  }
+
+  getConsumers() {
+    return this.meetingService.getConsumers();
+  }
+  get isMeetingReady(): boolean {
+    return this.meetingService.isMeetingReady;
+  }
+
+  getMemberPeerConnection(key: string) {
+    const meetingMembers = this.meetingService.getConsumers();
+    const member = meetingMembers.get(key);
+    if (member) console.warn(member);
   }
 }

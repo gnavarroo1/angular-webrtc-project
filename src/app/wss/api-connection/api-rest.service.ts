@@ -49,6 +49,14 @@ export class ApiRestService {
     return this.http.delete<any>(url);
   }
 
+  listMeetingMembers(meetingId: string): Observable<any> {
+    const url = (
+      environment.apiServer.api.url +
+      environment.apiServer.api.methods.getMeetingMembers
+    ).replace(':meetingId', meetingId);
+    return this.http.get<any>(url);
+  }
+
   startBroadcastingSession(
     meetingId: string,
     sessionUserId: string,

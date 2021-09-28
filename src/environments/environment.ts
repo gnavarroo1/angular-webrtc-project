@@ -25,7 +25,7 @@ export const environment = {
       },
     },
     wss: {
-      url: 'ws://127.0.0.1:3000/',
+      url: 'ws://127.0.0.1:3001/',
       namespaces: {
         meeting: 'meeting-events',
       },
@@ -42,7 +42,7 @@ export const environment = {
     configuration: {
       videoAspectRatio: 1.777,
       resolution: 'medium',
-      framerate: 15,
+      framerate: 30,
       defaultScreenResolution: 'veryhigh',
       defaultScreenSharingFrameRate: 5,
       // Enable or disable simulcast for webcam video
@@ -90,7 +90,7 @@ export const environment = {
     },
   },
   signalingServer: {
-    wssUrl: 'ws://127.0.0.1:5000',
+    wssUrl: 'ws://127.0.0.1:8000',
   },
   webrtcP2PConfiguration: {
     rtcConfiguration: {
@@ -115,17 +115,11 @@ export const environment = {
 
   mediasoupWssUrl: 'wss://dev.pry2021153.tech:8099',
   mediaSoupApiUrl: 'https://dev.pry2021153.tech:8099/',
-  signalingWssUrl: 'ws://127.0.0.1:5000',
+  signalingWssUrl: 'ws://127.0.0.1:8000',
   platformApiUrl: 'http://127.0.0.1:3000/api/',
   platformWssUrls: {
-    meetingEvents: 'ws://127.0.0.1:3000/meeting-events',
+    meetingEvents: 'ws://127.0.0.1:3001/meeting-events',
   },
-
-  camVideoSimulcastEncodings: [
-    { maxBitrate: 96000, scaleResolutionDownBy: 4 },
-    { maxBitrate: 680000, scaleResolutionDownBy: 1 },
-  ],
-  testRoom: '4zsnRr+4wWBLFcSb',
   rtcConfiguration: {
     iceServers: [
       {

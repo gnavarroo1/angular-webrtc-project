@@ -1,29 +1,29 @@
 
 <mat-sidenav-container class="example-container">
-  <mat-sidenav *ngIf="!isOnlyConsumer()"  #sidenav mode="side" position="end" [(opened)]="opened"  >
-    <div class="md-toolbar-tools">
-      <div class="wraper-v" style="min-width:20vw">
-        <mat-list >
-          <mat-list-item *ngFor="let peer of producerPeers | keyvalue" >
-            {{peer.key}}
-            <button mat-icon-button #menuTrigger="matMenuTrigger"  [matMenuTriggerFor]="menu" class="more-button">
-              <mat-icon>more_vert</mat-icon>
-            </button>
-            <mat-menu #menu="matMenu" >
-              <button  mat-menu-item (click)="globalAudioToggle(peer.key)">
-                <mat-icon >mic_off</mat-icon>
-              </button>
-              <button  mat-menu-item (click)="globalVideoToggle(peer.key)">
-                <mat-icon>videocam_off</mat-icon>
-              </button>
-            </mat-menu>
-          </mat-list-item>
-        </mat-list>
-      </div>
-    </div>
-  </mat-sidenav>
+<!--  <mat-sidenav *ngIf="!isOnlyConsumer()"  #sidenav mode="side" position="end" [(opened)]="opened"  >-->
+<!--    <div class="md-toolbar-tools">-->
+<!--      <div class="wraper-v" style="min-width:20vw">-->
+<!--        <mat-list >-->
+<!--          <mat-list-item *ngFor="let peer of producerPeers | keyvalue" >-->
+<!--            {{peer.key}}-->
+<!--            <button mat-icon-button #menuTrigger="matMenuTrigger"  [matMenuTriggerFor]="menu" class="more-button">-->
+<!--              <mat-icon>more_vert</mat-icon>-->
+<!--            </button>-->
+<!--            <mat-menu #menu="matMenu" >-->
+<!--              <button  mat-menu-item (click)="globalAudioToggle(peer.key)">-->
+<!--                <mat-icon >mic_off</mat-icon>-->
+<!--              </button>-->
+<!--              <button  mat-menu-item (click)="globalVideoToggle(peer.key)">-->
+<!--                <mat-icon>videocam_off</mat-icon>-->
+<!--              </button>-->
+<!--            </mat-menu>-->
+<!--          </mat-list-item>-->
+<!--        </mat-list>-->
+<!--      </div>-->
+<!--    </div>-->
+<!--  </mat-sidenav>-->
   <mat-sidenav-content>
-    <div id="mediasoup-demo-app-container">
+    <div id="mediasoup-demo-app-container" *ngIf="isValidMeeting">
       <div data-component="Room">
         <div data-component="Notifications"></div>
         <div class="state" *ngIf="isBroadcasting">
@@ -43,20 +43,21 @@
           </div>
 
         </div>
-        <div data-component="Peers">
-          <div class="peer-container" *ngFor="let peer of producerPeers | keyvalue" >
-            <div *ngIf="notConsumer(peer.value.kind)" data-component="Peer" >
+        <div data-component="Peers" *ngIf="isMeetingReady">
+          <div class="peer-container" *ngFor="let peer of getConsumers() | keyvalue" >
+            <div data-component="Peer" >
               <div class="indicators">
-                <div [ngClass]="{'icon': true,'mic-off':!peer.value.producerAudioEnabled}" ></div>
-                <div [ngClass]="{'icon': true,'webcam-off':!peer.value.producerVideoEnabled}" ></div>
+                <div [ngClass]="{'icon': true,'mic-off':true }" ></div>
+                <div [ngClass]="{'icon': true,'webcam-off':true}" ></div>
               </div>
               <div data-component="PeerView">
                 <div class="info">
                   <div class="icons">
+                    <div [ngClass]="{'button mic': true,'on':true, 'off':false}" (click)="getMemberPeerConnection(peer.key)" *ngIf="!isOnlyConsumer()"></div>
 <!--                    <div [ngClass]="{'button mic': true,'on':true, 'off':false}" (click)="globalAudioToggle(peer.key)" *ngIf="!isOnlyConsumer()"></div>-->
 <!--                    <div [ngClass]="{'button webcam': true,'on':true, 'off':false}" (click)="globalVideoToggle(peer.key)" *ngIf="!isOnlyConsumer()"></div>-->
-                    <!--                <div class="icon info" (click)="getConsumerState(peer.key)"></div>-->
-                    <!--                <div class="icon stats"><span class="icon stats" (click)="getConsumerState(peer.key)"></span></div>-->
+<!--                                    <div class="icon info" (click)="getConsumerState(peer.key)"></div>-->
+<!--                                    <div class="icon stats"><span class="icon stats" (click)="getConsumerState(peer.key)"></span></div>-->
                   </div>
                   <div class="peer">
                     <span class="display-name">{{peer.key}}</span>
@@ -65,8 +66,8 @@
                     </div>
                   </div>
                 </div>
-                <video autoplay="" playsinline [id]="peer.key" [srcObject]="peer.value.producerVideoEnabled?getMemberVideoStream(peer.key):undefined"></video>
-                <audio autoplay="" playsinline  [srcObject]="getMemberAudioStream(peer.key)" ></audio>
+                <video autoplay="" playsinline [id]="peer.key" [srcObject]="peer.value.remoteStream"></video>
+                <audio autoplay="" playsinline  [srcObject]="peer.value.audioStream" ></audio>
                 <canvas class="face-detection"></canvas>
                 <div class="volume-container">
                   <div class="bar level0"></div>
@@ -91,7 +92,7 @@
                 </div>
                 <div class="peer is-me">
               <span class="display-name editable" tabindex="0">
-                {{ meetingMember.nickname }}
+                {{ meetingMember._id }}
               </span>
                   <div class="row">
                     <span class="device-icon chrome"></span>
@@ -99,8 +100,8 @@
                   </div>
                 </div>
               </div>
-              <video autoplay class="is-me" playsinline [srcObject]="getLocalStream()" *ngIf="videoEnabled"></video>
-              <audio autoplay playsinline></audio>
+              <video autoplay class="is-me" playsinline [srcObject]="localStream" *ngIf="videoEnabled" [volume]="0" [muted]="true"></video>
+<!--              <audio autoplay playsinline muted></audio>-->
               <canvas class="face-detection is-me"></canvas>
               <div class="volume-container">
                 <div class="bar level0"></div>

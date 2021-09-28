@@ -1,4 +1,12 @@
-import { DtlsParameters } from 'mediasoup-client/lib/Transport';
+import {
+  DtlsParameters,
+  IceCandidate,
+  IceParameters,
+} from 'mediasoup-client/lib/Transport';
+import {
+  RtcpParameters,
+  RtpCapabilities,
+} from 'mediasoup-client/lib/RtpParameters';
 
 export interface IOfferPayload {
   id: string;
@@ -52,6 +60,12 @@ export interface IPeerStat {
   readonly ssrc: number;
   readonly timestamp: number;
   readonly type: 'outbound-rtp' | 'inbound-rtp';
+}
+
+export enum MeetingServiceType {
+  'MESH',
+  'SFU',
+  'BOTH',
 }
 
 export type TState = 'new' | 'connecting' | 'connected' | 'failed' | 'closed';
@@ -109,6 +123,10 @@ export type WebRtcTransportResponse = {
     dtlsParameters: DtlsParameters;
   };
 };
+export type SocketQueryParams = {
+  meetingId: string;
+  userId: string;
+};
 
 export class MeetingMember {
   private _peerConnections: Map<string, RTCPeerConnection> = new Map<
@@ -116,3 +134,39 @@ export class MeetingMember {
     RTCPeerConnection
   >();
 }
+
+export type TCreateWebRtcTransportResponse = {
+  id: string;
+  iceParameters: IceParameters;
+  iceCandidates: IceCandidate[];
+  dtlsParameters: DtlsParameters;
+};
+export type TCreateWebRtcTransportRequest = {
+  type: TPeer;
+};
+
+export type TConnectWebRtcTransportRequest = {
+  dtlsParameters: DtlsParameters;
+  type: TPeer;
+};
+
+export type TProduceRequest = {
+  producerTransportId: string;
+  kind: TKind;
+  rtpParameters: RTCRtpParameters;
+};
+
+export type TTargetProducerRequest = {
+  userId: string;
+  kind: TKind;
+  isGlobal: boolean;
+};
+
+export type TMediaKindRequest = {
+  kind: TKind;
+};
+export type TConsumeRequest = {
+  rtpCapabilities: RtpCapabilities;
+  userId: string;
+  kind: TKind;
+};

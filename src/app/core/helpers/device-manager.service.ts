@@ -8,18 +8,18 @@ export type Devices = MediaDeviceInfo[];
 export class DeviceService {
   _devices: Observable<Promise<Devices>>;
   private deviceBroadcast = new ReplaySubject<Promise<Devices>>();
-  private videoAspectRatio = { min: 4 / 3, max: 1 };
-  private width = { min: 640, max: 1280 };
-  private height = { min: 480, max: 720 };
+  private videoAspectRatio = { min: 4 / 3, ideal: 1 };
+  private width = { min: 640, ideal: 1280 };
+  private height = { min: 480, ideal: 720 };
 
   constructor() {
     if (navigator && navigator.mediaDevices) {
       navigator.mediaDevices.ondevicechange = (_: Event) => {
-        this.deviceBroadcast.next(this.getDeviceOptions());
+        // this.deviceBroadcast.next(this.getDeviceOptions());
       };
     }
     this._devices = this.deviceBroadcast.asObservable();
-    this.deviceBroadcast.next(this.getDeviceOptions());
+    // this.deviceBroadcast.next(this.getDeviceOptions());
   }
 
   private async permissionsGranted() {
@@ -76,7 +76,17 @@ export class DeviceService {
 
   public async getUserMedia(): Promise<MediaStream> {
     const constraints = this.getMediaDevicesConstraints();
-    return await navigator.mediaDevices.getUserMedia(constraints);
+    console.warn('GET USER MEDIA CONSTRAINTS', constraints);
+    return new Promise<MediaStream>((resolve, reject) => {
+      navigator.mediaDevices
+        .getUserMedia(constraints)
+        .then((stream) => {
+          resolve(stream);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
   }
 
   private getMediaDevicesConstraints() {
