@@ -24,7 +24,7 @@ export class ApiGatewayService {
   async joinMeeting(payload: MeetingMemberDto): Promise<any> {
     return new Promise<any>((resolve, reject) => {
       try {
-        this.socket.emit('join-meeting', payload, (response: any) => {
+        this.socket.emit('joinMeeting', payload, (response: any) => {
           resolve(response);
         });
       } catch (e) {
@@ -36,27 +36,70 @@ export class ApiGatewayService {
   }
 
   updateMeetingParticipant(payload: any) {
-    this.socket.emit('update-participant', { ...payload });
+    this.socket.emit('updateParticipant', { ...payload });
   }
 
   endMeetingSession(payload: any) {
-    this.socket.emit('end-meeting-session', { ...payload });
+    this.socket.emit('endMeetingSession', { ...payload });
   }
 
   onDisconnect(): Observable<any> {
-    return this.socket.fromEvent('on-disconnect');
+    return this.socket.fromEvent('onDisconnect');
   }
   startMeetingBroadcast(payload: any) {
-    this.socket.emit('start-meeting-broadcast', { ...payload });
+    this.socket.emit('startMeetingBroadcast', { ...payload });
   }
 
   endMeetingBroadcast(payload: any) {
-    this.socket.emit('end-meeting-broadcast', { ...payload });
+    this.socket.emit('endMeetingBroadcast', { ...payload });
   }
   onStartMeetingBroadcast(): Observable<any> {
-    return this.socket.fromEvent('start-broadcasting-session');
+    return this.socket.fromEvent('startBroadcastingSession');
   }
   onEndMeetingBroadcast(): Observable<any> {
-    return this.socket.fromEvent('end-broadcasting-session');
+    return this.socket.fromEvent('endBroadcastingSession');
+  }
+
+  startScreenSharing(payload: { meetingId: string; meetingMemberId: string }) {
+    this.socket.emit('startScreenSharing', {
+      ...payload,
+      isScreenSharing: true,
+    });
+  }
+
+  stopScreenSharing(payload: { meetingId: string; meetingMemberId: string }) {
+    this.socket.emit('endScreenSharing', {
+      ...payload,
+      isScreenSharing: false,
+    });
+  }
+
+  onStartScreenSharing(): Observable<any> {
+    return this.socket.fromEvent('startScreenSharing');
+  }
+  onStopScreenSharing(): Observable<any> {
+    return this.socket.fromEvent('endScreenSharing');
+  }
+
+  toggleGlobalAudio(payload: {
+    meetingId: string;
+    meetingMemberId: string;
+    produceAudioAllowed: boolean;
+  }): void {
+    this.socket.emit('toggleGlobalAudio', payload);
+  }
+  toggleGlobalVideo(payload: {
+    meetingId: string;
+    meetingMemberId: string;
+    produceVideoAllowed: boolean;
+  }): void {
+    this.socket.emit('toggleGlobalVideo', payload);
+  }
+
+  onToggleGlobalAudio(): Observable<any> {
+    return this.socket.fromEvent('toggleGlobalAudio');
+  }
+  onToggleGlobalVideo(): Observable<any> {
+    return this.socket.fromEvent('toggleGlobalAudio');
   }
 }

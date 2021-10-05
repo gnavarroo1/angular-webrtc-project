@@ -21,8 +21,8 @@ export class WssService {
       options: {
         query: {
           token: localStorage.getItem(environment.token.authHeaderKey),
-          session_id: sessionId,
-          user_id: userId,
+          sessionId: sessionId,
+          userId: userId,
         },
       },
     });
@@ -58,6 +58,9 @@ export class WssService {
   }
   onMediaProducerResume(): Observable<any> {
     return this._socket.fromEvent('mediaProducerResume');
+  }
+  onMediaProducerClose(): Observable<any> {
+    return this._socket.fromEvent('mediaProducerClose');
   }
   onMediaActiveSpeaker(): Observable<any> {
     return this._socket.fromEvent('mediaActiveSpeaker');

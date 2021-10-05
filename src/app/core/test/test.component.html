@@ -4,18 +4,29 @@
     <div class="md-toolbar-tools">
       <div class="wraper-v" style="min-width:20vw">
         <mat-list >
+          <div mat-subheader>Users</div>
           <mat-list-item *ngFor="let peer of producerPeers | keyvalue" >
-            {{peer.key}}
-            <button mat-icon-button #menuTrigger="matMenuTrigger"  [matMenuTriggerFor]="menu" class="more-button">
-              <mat-icon>more_vert</mat-icon>
-            </button>
+            <div mat-line>
+              <button mat-icon-button #trigger="matMenuTrigger"  [matMenuTriggerFor]="menu">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              {{peer.key}}
+            </div>
             <mat-menu #menu="matMenu" >
-              <button  mat-menu-item (click)="globalAudioToggle(peer.key)">
-                <mat-icon >mic_off</mat-icon>
+              <button mat-menu-item (click)="globalAudioToggle(peer.key)">
+                <mat-icon >{{ peer.value.globalAudioEnabled ?'mic_off':'mic_on' }}</mat-icon>
+                {{ peer.value.globalAudioEnabled ? 'Session Mute Off': 'Session Mute Off' }}
               </button>
               <button  mat-menu-item (click)="globalVideoToggle(peer.key)">
-                <mat-icon>videocam_off</mat-icon>
+                <mat-icon>{{ peer.value.globalVideoEnabled ?'videocam_off':'videocam_on' }}</mat-icon>
+                {{ peer.value.globalVideoEnabled ? 'Session Video Off': 'Session Video On' }}
               </button>
+<!--              <button  mat-menu-item (click)="printConsumerScreen(peer.key)">-->
+<!--                print-->
+<!--              </button>-->
+              <div mat-menu-item>
+                <mat-slider min="0.1" max="1" step="0.1" [value]="peer.value.volume" (change)="volumeChange($event,peer.key)" ></mat-slider>
+              </div>
             </mat-menu>
           </mat-list-item>
         </mat-list>
@@ -60,13 +71,14 @@
                   </div>
                   <div class="peer">
                     <span class="display-name">{{peer.key}}</span>
+                    <span class="display-name">volume: {{ peer.value.volume*100 + '%' }}</span>
                     <div class="row">
                       <span class="device-icon edge"></span><span class="device-version"></span>
                     </div>
                   </div>
                 </div>
-                <video autoplay="" playsinline [id]="peer.key" [srcObject]="peer.value.producerVideoEnabled?getMemberVideoStream(peer.key):undefined"></video>
-                <audio autoplay="" playsinline  [srcObject]="getMemberAudioStream(peer.key)" ></audio>
+                <video autoplay="" playsinline [id]="peer.key" [srcObject]="(peer.value.producerVideoEnabled || peer.value.isScreenSharing)?getMemberVideoStream(peer.key):undefined" *ngIf="(peer.value.producerVideoEnabled || peer.value.isScreenSharing)"></video>
+                <audio autoplay="" playsinline  [srcObject]="getMemberAudioStream(peer.key)" [volume]="peer.value.volume"></audio>
                 <canvas class="face-detection"></canvas>
                 <div class="volume-container">
                   <div class="bar level0"></div>
@@ -80,8 +92,9 @@
             <div class="controls">
               <div [ngClass]="{'button mic': true,'on':audioEnabled, 'off':!audioEnabled}" (click)="toggleAudio()"></div>
               <div [ngClass]="{'button webcam': true,'on':videoEnabled, 'off':!videoEnabled}" (click)="toggleVideo()"></div>
-              <div class="button share off" (click)="startBroadcastingSession()" ></div>
+              <div class="button share off" (click)="shareScreen()" ></div>
               <div class="button stats off" (click)="endBroadcastingSession()" ></div>
+
             </div>
             <div data-component="PeerView">
               <div class="info">

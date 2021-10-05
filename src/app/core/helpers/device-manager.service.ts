@@ -2,6 +2,17 @@ import { Injectable } from '@angular/core';
 import { Observable, ReplaySubject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 export type Devices = MediaDeviceInfo[];
+
+interface DisplayMediaStreamConstraints {
+  audio?: boolean | MediaTrackConstraints;
+  video?: boolean | MediaTrackConstraints;
+}
+interface IMediaDevices extends MediaDevices {
+  getDisplayMedia(
+    constraints?: DisplayMediaStreamConstraints
+  ): Promise<MediaStream>;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -115,5 +126,21 @@ export class DeviceService {
 
       return constraints;
     }
+  }
+
+  public async getDisplayMedia(): Promise<MediaStream> {
+    const mediaDevices = navigator.mediaDevices as IMediaDevices;
+    return new Promise((resolve, reject) => {
+      return mediaDevices
+        .getDisplayMedia({
+          video: true,
+        })
+        .then((stream) => {
+          resolve(stream);
+        })
+        .catch((e) => {
+          reject(e);
+        });
+    });
   }
 }

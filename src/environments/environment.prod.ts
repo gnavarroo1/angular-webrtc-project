@@ -5,7 +5,7 @@
 import * as uuid from 'uuid';
 
 export const environment = {
-  user_id: uuid.v4(),
+  userId: uuid.v4(),
   production: false,
   name: 'development',
   token: {
@@ -13,26 +13,28 @@ export const environment = {
   },
   apiServer: {
     api: {
-      url: 'http://127.0.0.1:3000/api/',
+      url: 'https://api-webrtc.pry2021153.tech:3000/api/',
       methods: {
         getMeeting: 'meetings/:meetingId',
         addMeeting: 'meetings',
         getMeetingMembers: 'meetings/:meetingId/members',
         updateMeetingMember: 'meetings/:meetingId/members/memberId',
         endMeetingSession: 'meetings/:meetingId',
+        startBroadcastingSession: 'meetings/:meetingId/broadcasting/start',
+        endBroadcastingSession: 'meetings/:meetingId/broadcasting/end',
       },
     },
     wss: {
-      url: 'ws://127.0.0.1:3000/',
+      url: 'wss://api-webrtc.pry2021153.tech:3000/',
       namespaces: {
         meeting: 'meeting-events',
       },
     },
   },
   mediasoupServer: {
-    wssUrl: 'ws://127.0.0.1:8098',
+    wssUrl: 'wss://dev.pry2021153.tech:8099',
     api: {
-      url: 'http://127.0.0.1:8099/',
+      url: 'https://dev.pry2021153.tech:8099/',
       namespaces: {},
     },
   },
@@ -114,9 +116,9 @@ export const environment = {
   mediasoupWssUrl: 'wss://dev.pry2021153.tech:8099',
   mediaSoupApiUrl: 'https://dev.pry2021153.tech:8099/',
   signalingWssUrl: 'ws://127.0.0.1:5000',
-  platformApiUrl: 'http://127.0.0.1:3000/api/',
+  platformApiUrl: 'https://api-webrtc.pry2021153.tech:3000/api/',
   platformWssUrls: {
-    meetingEvents: 'ws://127.0.0.1:3000/meeting-events',
+    meetingEvents: 'wss://api-webrtc.pry2021153.tech:3000/meeting-events',
   },
 
   camVideoSimulcastEncodings: [
@@ -138,5 +140,6 @@ export const environment = {
     ],
     iceCandidatePoolSize: 10,
   },
+
   lsGuessName: 'meeting.guessName',
 };

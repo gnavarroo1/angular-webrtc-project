@@ -74,7 +74,7 @@ export type ConsumableData = {
   rtpParameters: RTCRtpParameters;
 };
 
-export type Stats = { kind: TKind; user_id: string; stats: IPeerStat[] };
+export type Stats = { kind: TKind; userId: string; stats: IPeerStat[] };
 export interface IMemberIdentifier {
   id: string;
   kind: MemberType;

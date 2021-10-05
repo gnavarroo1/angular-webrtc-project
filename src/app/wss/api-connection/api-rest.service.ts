@@ -31,14 +31,14 @@ export class ApiRestService {
     return this.http.get<any>(url);
   }
 
-  updateMeetingMember(meetingId: string, memberInfo: any): Observable<any> {
+  updateMeetingMember(meetingId: string, memberMember: any): Observable<any> {
     let url =
       environment.apiServer.api.url +
       environment.apiServer.api.methods.updateMeetingMember;
     url = url
       .replace(':meetingId', meetingId)
-      .replace(':memberId', memberInfo.id);
-    return this.http.put<any>(url, memberInfo);
+      .replace(':memberId', memberMember.id);
+    return this.http.put<any>(url, memberMember);
   }
 
   endMeetingSession(meetingId: string): Observable<any> {

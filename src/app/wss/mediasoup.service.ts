@@ -8,30 +8,30 @@ import { environment } from '../../environments/environment';
 export class MediasoupApiService {
   private apiMediasoup =
     environment.mediaSoupApiUrl + 'websocket/message-connection-handler';
-  private _user_id!: string;
-  private _session_id!: string;
+  private _userId!: string;
+  private _sessionId!: string;
 
-  get user_id(): string {
-    return this._user_id;
+  get userId(): string {
+    return this._userId;
   }
 
-  set user_id(value: string) {
-    this._user_id = value;
+  set userId(value: string) {
+    this._userId = value;
   }
-  get session_id(): string {
-    return this._session_id;
+  get sessionId(): string {
+    return this._sessionId;
   }
 
-  set session_id(value: string) {
-    this._session_id = value;
+  set sessionId(value: string) {
+    this._sessionId = value;
   }
 
   constructor(private http: HttpClient) {}
 
   requestMedia(payload: any) {
     return this.http.post<any>(this.apiMediasoup, {
-      user_id: this._user_id,
-      session_id: this._session_id,
+      userId: this._userId,
+      sessionId: this._sessionId,
       ...payload,
     });
   }

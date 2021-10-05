@@ -5,7 +5,7 @@
 import * as uuid from 'uuid';
 
 export const environment = {
-  user_id: uuid.v4(),
+  userId: uuid.v4(),
   production: false,
   name: 'development',
   token: {
@@ -18,7 +18,7 @@ export const environment = {
         getMeeting: 'meetings/:meetingId',
         addMeeting: 'meetings',
         getMeetingMembers: 'meetings/:meetingId/members',
-        updateMeetingMember: 'meetings/:meetingId/members/memberId',
+        updateMeetingMember: 'meetings/:meetingId/members/:memberId',
         endMeetingSession: 'meetings/:meetingId',
         startBroadcastingSession: 'meetings/:meetingId/broadcasting/start',
         endBroadcastingSession: 'meetings/:meetingId/broadcasting/end',
@@ -32,9 +32,9 @@ export const environment = {
     },
   },
   mediasoupServer: {
-    wssUrl: 'wss://dev.pry2021153.tech:8099',
+    wssUrl: 'ws://127.0.0.1:9000',
     api: {
-      url: 'https://dev.pry2021153.tech:8099/',
+      url: 'http://127.0.0.1:8099/',
       namespaces: {},
     },
   },
@@ -113,8 +113,8 @@ export const environment = {
     guessName: 'meeting.guessName',
   },
 
-  mediasoupWssUrl: 'wss://dev.pry2021153.tech:8099',
-  mediaSoupApiUrl: 'https://dev.pry2021153.tech:8099/',
+  mediasoupWssUrl: 'ws://127.0.0.1:9000',
+  mediaSoupApiUrl: 'http://127.0.0.1:8099/',
   signalingWssUrl: 'ws://127.0.0.1:5000',
   platformApiUrl: 'http://127.0.0.1:3000/api/',
   platformWssUrls: {

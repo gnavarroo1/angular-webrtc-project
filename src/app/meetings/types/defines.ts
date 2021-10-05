@@ -71,14 +71,19 @@ export type MeetingMemberDto = {
   userId: string;
   isGuest: boolean;
   nickname?: string;
-  memberType?: string;
+  memberType?: MemberType;
   meetingId?: string;
+  produceAudioAllowed?: boolean;
+  produceVideoAllowed?: boolean;
+  produceAudioEnabled?: boolean;
+  produceVideoEnabled?: boolean;
+  isScreenSharing?: boolean;
 };
 
 export enum MemberType {
-  'BOTH',
-  'PRODUCER',
-  'CONSUMER',
+  BOTH = 'BOTH',
+  PRODUCER = 'PRODUCER',
+  CONSUMER = 'CONSUMER',
 }
 
 export type RouterRTPCapabilities = {
@@ -91,14 +96,16 @@ export type ConsumableData = {
   rtpParameters: RTCRtpParameters;
 };
 
-export type Stats = { kind: TKind; user_id: string; stats: IPeerStat[] };
+export type Stats = { kind: TKind; userId: string; stats: IPeerStat[] };
 export interface IMemberIdentifier {
   id: string;
   kind: MemberType;
+  volume: number;
   producerAudioEnabled?: boolean;
   producerVideoEnabled?: boolean;
   globalAudioEnabled?: boolean;
   globalVideoEnabled?: boolean;
+  isScreenSharing: boolean;
 }
 export type WebRtcTransportResponse = {
   type: TPeer;
