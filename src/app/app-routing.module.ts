@@ -4,12 +4,17 @@ import { TestComponent } from './core/test/test.component';
 import { MemberType } from '../types/enums';
 import {LogInComponent} from "./components/log-in/log-in.component";
 import {RegisterComponent} from "./components/register/register.component";
+import {LobbyComponent} from "./components/lobby/lobby.component";
 
 const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'login' },
   {
     path: 'login',
     component: LogInComponent
+  },
+  {
+    path: 'lobby',
+    component: LobbyComponent
   },
   {
     path: 'register',

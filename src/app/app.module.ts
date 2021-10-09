@@ -25,8 +25,9 @@ import { ClipboardModule } from 'ngx-clipboard';
 import { LogInComponent } from './components/log-in/log-in.component';
 import { RegisterComponent } from './components/register/register.component';
 import { LobbyComponent } from './components/lobby/lobby.component';
+import { VideoPlayerComponent } from './components/video-player/video-player.component';
 @NgModule({
-  declarations: [AppComponent, LogInComponent, RegisterComponent, LobbyComponent],
+  declarations: [AppComponent, LogInComponent, RegisterComponent, LobbyComponent, VideoPlayerComponent],
   imports: [
 
     FormsModule,

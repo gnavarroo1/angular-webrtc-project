@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import {AbstractControl, FormBuilder, ValidationErrors, ValidatorFn, Validators} from "@angular/forms";
 
 @Component({
@@ -6,7 +6,7 @@ import {AbstractControl, FormBuilder, ValidationErrors, ValidatorFn, Validators}
   templateUrl: './log-in.component.html',
   styleUrls: ['./log-in.component.css']
 })
-export class LogInComponent implements OnInit {
+export class LogInComponent  {
   loading = false;
   submitted = false;
 
@@ -31,8 +31,8 @@ export class LogInComponent implements OnInit {
 
   constructor(private fb: FormBuilder) { }
 
-  ngOnInit(): void {
-  }
+
+
 
   get email() {
     return this.form.controls['email'];

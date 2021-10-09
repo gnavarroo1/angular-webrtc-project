@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
+import {FormBuilder} from "@angular/forms";
 
 @Component({
   selector: 'app-register',
@@ -6,13 +7,14 @@ import { Component, OnInit } from '@angular/core';
   styleUrls: ['./register.component.css']
 })
 
-export class RegisterComponent implements OnInit {
+export class RegisterComponent  {
 
   Roles: any = ['Admin', 'Author', 'Reader'];
 
-  constructor() { }
+  constructor(private fb: FormBuilder) { }
 
-  ngOnInit() {
-  }
+  isLogin = true;
+
+
 
 }
