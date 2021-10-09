@@ -14,6 +14,7 @@ import { MeetingService } from '../../wss/meeting.service';
 import { TokenManagerService } from '../services/token-manager.service';
 import Swal from 'sweetalert2';
 import { AuthService } from '../services/auth.service';
+import { P2PConsumer } from '../../wss/p2p-webrtc.service';
 
 @Component({
   selector: 'app-test',
@@ -50,7 +51,7 @@ export class TestComponent implements OnInit {
   meetingId!: string;
   isBroadcasting = false;
   isValidMeeting = false;
-  localStream: MediaStream | undefined;
+
   hasError = false;
   errorMessage = '';
   constructor(
@@ -65,7 +66,7 @@ export class TestComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     const result = this.tokenManagerService.hasAuthToken();
-    console.log(result);
+
     if (!result.hasAuthToken || result.isExpired) {
       await this.authService
         .createTemporalUser()
@@ -84,11 +85,13 @@ export class TestComponent implements OnInit {
     const params = this.activatedRoute.snapshot.params;
     this.memberType = snapshotData.memberType;
     this.meetingMember = {
+      isScreenSharing: false,
       isGuest: authToken.user.isGuest,
       userId: this.userId,
       sessionUserId: authToken.user.sessionId,
       nickname: authToken.user.username ? authToken.user.username : this.userId,
-      memberType: MemberType[this.memberType],
+      memberType: this.memberType,
+      connectionType: MeetingServiceType.MESH,
     };
     new Promise((resolve, reject) => {
       if (!snapshotData.newMeeting) {
@@ -131,7 +134,7 @@ export class TestComponent implements OnInit {
       ) {
         //Validate local stream and then initialize the connection to the meeting
         this.meetingService
-          .getLocalMediaDevices()
+          .getLocalMediaDevices(this.memberType)
           .then(async () => {
             const result = await this.meetingService.addMeetingMember(
               this.meetingMember
@@ -146,7 +149,7 @@ export class TestComponent implements OnInit {
               // this.mediasoupService.initWssService();
 
               this.eventHandlers();
-              this.meetingService.initMeeting();
+              // this.meetingService.initMeeting();
             } else {
               const msg = result.payload;
               window.location.href = 'https://www.google.com/nonexistent';
@@ -165,54 +168,54 @@ export class TestComponent implements OnInit {
   }
 
   eventHandlers() {
-    this.meetingService.localStream$.subscribe((value) => {
-      this.localStream = value;
-    });
+    // this.meetingService.localStream$.subscribe((value) => {
+    //   this.localStream = value;
+    // });
     this.meetingService.isBroadcasting$.subscribe((value) => {
       console.log(value);
       this.isBroadcasting = value;
       if (
         !this.isBroadcasting &&
-        this.meetingMember.memberType === MemberType[MemberType.CONSUMER]
+        this.meetingMember.memberType === MemberType.CONSUMER
       ) {
-        let timerInterval: NodeJS.Timeout;
-        Swal.fire({
-          title: `SESIÓN FINALIZADA`,
-          html: 'SERA REDIRIGIDO A LA PÁGINA PRINCIPAL EN <strong></strong> SEGUNDOS.<br/><br/>',
-          timer: 5000,
-          icon: 'warning',
-          showCancelButton: false,
-          confirmButtonColor: '#3085d6',
-          allowOutsideClick: false,
-          confirmButtonText: 'PÁGINA PRINCIPAL',
-          willOpen() {
-            Swal.showLoading();
-            timerInterval = setInterval(() => {
-              const timeLeft = Swal.getTimerLeft();
-              let timer = '0';
-              if (timeLeft) {
-                timer = (timeLeft / 1000).toFixed(0);
-              }
-              const container =
-                Swal.getHtmlContainer()?.querySelector('strong');
-              if (container) {
-                container.textContent = timer;
-              }
-            }, 100);
-          },
-          willClose: () => {
-            clearInterval(timerInterval);
-            this.leaveMeetingSession();
-          },
-        })
-          .then((result) => {
-            if (result.value) {
-              this.leaveMeetingSession();
-            }
-          })
-          .catch((e) => {
-            console.log(e);
-          });
+        // let timerInterval: NodeJs.Timeout;
+        // Swal.fire({
+        //   title: `SESIÓN FINALIZADA`,
+        //   html: 'SERA REDIRIGIDO A LA PÁGINA PRINCIPAL EN <strong></strong> SEGUNDOS.<br/><br/>',
+        //   timer: 5000,
+        //   icon: 'warning',
+        //   showCancelButton: false,
+        //   confirmButtonColor: '#3085d6',
+        //   allowOutsideClick: false,
+        //   confirmButtonText: 'PÁGINA PRINCIPAL',
+        //   willOpen() {
+        //     Swal.showLoading();
+        //     timerInterval = setInterval(() => {
+        //       const timeLeft = Swal.getTimerLeft();
+        //       let timer = '0';
+        //       if (timeLeft) {
+        //         timer = (timeLeft / 1000).toFixed(0);
+        //       }
+        //       const container =
+        //         Swal.getHtmlContainer()?.querySelector('strong');
+        //       if (container) {
+        //         container.textContent = timer;
+        //       }
+        //     }, 100);
+        //   },
+        //   willClose: () => {
+        //     clearInterval(timerInterval);
+        //     this.leaveMeetingSession();
+        //   },
+        // })
+        //   .then((result) => {
+        //     if (result.value) {
+        //       this.leaveMeetingSession();
+        //     }
+        //   })
+        //   .catch((e) => {
+        //     console.log(e);
+        //   });
       }
     });
     // this.mediasoupService.onConnectionReady().subscribe(async (data) => {
@@ -244,9 +247,132 @@ export class TestComponent implements OnInit {
   leaveMeetingSession() {
     window.location.href = 'https://about.google/';
   }
-
   isOnlyConsumer() {
     return this.memberType === MemberType.CONSUMER;
+  }
+  getLocalStream(): MediaStream | undefined {
+    return;
+    // console.log(this.mediasoupService.getStream());
+
+    // return this.mediasoupService.getStream();
+  }
+  async restartIce(): Promise<void> {
+    // this.logger.warn('TEST', this.mediasoupService.consumersAudio);
+    // this.logger.warn('TEST', this.mediasoupService.consumersVideo);
+  }
+  async toggleAudio(): Promise<void> {
+    console.log(this.localStream?.getAudioTracks()[0]);
+    if (this.audioEnabled) {
+      this.audioEnabled = this.meetingService.audioPause();
+    } else {
+      this.audioEnabled = this.meetingService.audioResume();
+    }
+    // this.audioEnabled = !this.audioEnabled;
+  }
+  async toggleVideo(): Promise<void> {
+    try {
+      const consumers = this.meetingService.getConsumers();
+      if (this.videoEnabled) {
+        this.videoEnabled = this.meetingService.videoPause();
+        consumers.forEach((value) => {
+          value.videoSendTransceiver.direction = 'inactive';
+        });
+      } else {
+        // console.log('RESUME');
+        // await this.mediasoupService.producerVideoResume(
+        //   this.meetingMember.sessionUserId
+        // );
+        this.meetingService.videoResume();
+        consumers.forEach((value) => {
+          value.videoSendTransceiver.direction = 'sendonly';
+        });
+      }
+      // this.videoEnabled = !this.videoEnabled;
+    } catch (error) {
+      console.error(error.message, error.stack);
+    }
+  }
+  async getMeetingLink() {
+    console.log(this.meetingId);
+    if (this.meetingId) {
+      this.clipboard.copyFromContent(
+        window.location.origin + '/meetings/join/' + this.meetingId
+      );
+    }
+  }
+  async getBroadcastingLink() {
+    if (this.meetingId) {
+      this.clipboard.copyFromContent(
+        window.location.origin + '/meetings/broadcasting/' + this.meetingId
+      );
+    }
+  }
+  notConsumer(memberType: MemberType) {
+    return memberType !== MemberType.CONSUMER;
+  }
+  async getConsumerState(userId: string) {
+    // const consumerAudio = this.mediasoupService.consumersAudio.get(userId);
+    // const consumerVideo = this.mediasoupService.consumersVideo.get(userId);
+    // const consumer = this.mediasoupService.consumers.get(userId);
+    // console.warn('consumerVideo', await consumerVideo?.getStats());
+    // console.warn(
+    //   'consumerAudioState',
+    //   this.mediasoupService.getMemberVideoStream(userId)?.getTracks()
+    // );
+    // console.warn('consumerVideoState', consumerVideo?.paused);
+    // console.warn('consumerState', consumer);
+  }
+  printConsumers(): void {
+    this.logger.warn(this.producerPeers);
+  }
+
+  async startBroadcastingSession() {
+    await this.meetingService.startBroadcastingSession(this.meetingMember);
+  }
+  async endBroadcastingSession() {
+    await this.meetingService.endBroadcastingSession(this.meetingMember);
+  }
+
+  getConsumers() {
+    return this.meetingService.getConsumers();
+  }
+  get isMeetingReady(): boolean {
+    return this.meetingService.isMeetingReady;
+  }
+
+  getMemberPeerConnection(member: P2PConsumer, peer: any) {
+    // const meetingMembers = this.meetingService.getConsumers();
+    // const member = meetingMembers.get(key);
+
+    if (member) {
+      console.warn('PEER', peer);
+      console.warn('RTCPEERCONNECTION', member.rtcPeerConnection);
+      console.warn('Remote Stream', member.remoteStream);
+      console.warn(
+        'TRANSCEIVERS => ',
+        member.rtcPeerConnection.getTransceivers().length
+      );
+      console.warn(
+        'TRANSCEIVERS => ',
+        member.rtcPeerConnection.getTransceivers()
+      );
+      if (
+        member.rtcPeerConnection.getTransceivers()[0].receiver.track.kind ==
+        'video'
+      ) {
+        // member.rtcPeerConnection.getTransceivers()[0].direction = 'recvonly';
+      }
+      if (
+        member.rtcPeerConnection.getTransceivers()[1].receiver.track.kind ==
+        'video'
+      ) {
+        // member.rtcPeerConnection.getTransceivers()[1].direction = 'recvonly';
+      }
+      // console.warn('NOISE RECV =>', member.noiseRecvTransceiver);
+      // console.warn('VIDEO RECV =>', member.videoRecvTransceiver);
+      // console.warn('NOISE SEND =>', member.noiseSendTransceiver);
+      // console.warn('VIDEO SEND =>', member.videoSendTransceiver);
+    }
   }
 
   // showProducerVideo():void{
@@ -275,13 +401,6 @@ export class TestComponent implements OnInit {
   resumeProducerAudio(): void {
     // this.mediasoupService.producerAudioResume(this.meetingMember.sessionUserId);
   }
-
-  getLocalStream(): MediaStream | undefined {
-    return;
-    // console.log(this.mediasoupService.getStream());
-
-    // return this.mediasoupService.getStream();
-  }
   getMemberVideoStream(key: string): MediaStream | undefined {
     return;
     // return this.mediasoupService.getMemberVideoStream(key);
@@ -290,101 +409,13 @@ export class TestComponent implements OnInit {
     return;
     // return this.mediasoupService.getMemberAudioStream(key);
   }
-  async restartIce(): Promise<void> {
-    // this.logger.warn('TEST', this.mediasoupService.consumersAudio);
-    // this.logger.warn('TEST', this.mediasoupService.consumersVideo);
-  }
-  async toggleAudio(): Promise<void> {
-    console.log(this.localStream?.getAudioTracks()[0]);
-    if (this.audioEnabled) {
-      this.audioEnabled = this.meetingService.audioPause();
-    } else {
-      this.audioEnabled = this.meetingService.audioResume();
-    }
-    // this.audioEnabled = !this.audioEnabled;
-  }
-
-  async toggleVideo(): Promise<void> {
-    try {
-      if (this.videoEnabled) {
-        this.videoEnabled = this.meetingService.videoPause();
-      } else {
-        // console.log('RESUME');
-        // await this.mediasoupService.producerVideoResume(
-        //   this.meetingMember.sessionUserId
-        // );
-        this.videoEnabled = this.meetingService.videoResume();
-      }
-      // this.videoEnabled = !this.videoEnabled;
-    } catch (error) {
-      console.error(error.message, error.stack);
-    }
-  }
-  async getMeetingLink() {
-    console.log(this.meetingId);
-    if (this.meetingId) {
-      this.clipboard.copyFromContent(
-        window.location.origin + '/meetings/join/' + this.meetingId
-      );
-    }
-  }
-  async getBroadcastingLink() {
-    if (this.meetingId) {
-      this.clipboard.copyFromContent(
-        window.location.origin + '/meetings/broadcasting/' + this.meetingId
-      );
-    }
-  }
-  notConsumer(memberType: MemberType) {
-    return memberType !== MemberType.CONSUMER;
-  }
-
-  async getConsumerState(userId: string) {
-    // const consumerAudio = this.mediasoupService.consumersAudio.get(userId);
-    // const consumerVideo = this.mediasoupService.consumersVideo.get(userId);
-    // const consumer = this.mediasoupService.consumers.get(userId);
-    // console.warn('consumerVideo', await consumerVideo?.getStats());
-    // console.warn(
-    //   'consumerAudioState',
-    //   this.mediasoupService.getMemberVideoStream(userId)?.getTracks()
-    // );
-    // console.warn('consumerVideoState', consumerVideo?.paused);
-    // console.warn('consumerState', consumer);
-  }
-  printConsumers(): void {
-    this.logger.warn(this.producerPeers);
-  }
-
   globalAudioToggle(key: string) {
     // this.mediasoupService.globalToggleMedia(key, 'audio');
   }
   globalVideoToggle(key: string) {
     // this.mediasoupService.globalToggleMedia(key, 'video');
   }
-
-  startBroadcastingSession() {
-    this.meetingService
-      .startBroadcastingSession(this.meetingMember)
-      .then(() => {})
-      .catch(() => {});
-  }
-  async endBroadcastingSession() {
-    this.meetingService
-      .endBroadcastingSession(this.meetingMember)
-      .then(() => {})
-      .catch(() => {});
-  }
-
-  getConsumers() {
-    return this.meetingService.getConsumers();
-  }
-  get isMeetingReady(): boolean {
-    return this.meetingService.isMeetingReady;
-  }
-
-  getMemberPeerConnection(key: string) {
-    const meetingMembers = this.meetingService.getConsumers();
-    const member = meetingMembers.get(key);
-    if (member) console.warn(member);
+  get localStream(): MediaStream | undefined {
+    return this.meetingService.localStream;
   }
 }

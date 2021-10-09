@@ -63,9 +63,9 @@ export interface IPeerStat {
 }
 
 export enum MeetingServiceType {
-  'MESH',
-  'SFU',
-  'BOTH',
+  MESH = 'MESH',
+  SFU = 'SFU',
+  BOTH = 'BOTH',
 }
 
 export type TState = 'new' | 'connecting' | 'connected' | 'failed' | 'closed';
@@ -83,16 +83,23 @@ export type MeetingMemberDto = {
   _id?: string;
   sessionUserId: string;
   userId: string;
-  isGuest: boolean;
+  isGuest?: boolean;
   nickname?: string;
-  memberType?: string;
+  memberType: MemberType;
   meetingId?: string;
+  isScreenSharing: boolean;
+  connectionType: MeetingServiceType;
+  produceVideoEnabled?: boolean;
+  produceAudioEnabled?: boolean;
+  produceAudioAllowed?: boolean;
+  produceVideoAllowed?: boolean;
+  volume?: number;
 };
 
 export enum MemberType {
-  'BOTH',
-  'PRODUCER',
-  'CONSUMER',
+  BOTH = 'BOTH',
+  PRODUCER = 'PRODUCER',
+  CONSUMER = 'CONSUMER',
 }
 
 export type RouterRTPCapabilities = {

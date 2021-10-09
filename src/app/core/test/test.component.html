@@ -53,7 +53,7 @@
               <div data-component="PeerView">
                 <div class="info">
                   <div class="icons">
-                    <div [ngClass]="{'button mic': true,'on':true, 'off':false}" (click)="getMemberPeerConnection(peer.key)" *ngIf="!isOnlyConsumer()"></div>
+                    <div [ngClass]="{'button mic': true,'on':true, 'off':false}" (click)="getMemberPeerConnection(peer.value, peer)" *ngIf="!isOnlyConsumer()"></div>
 <!--                    <div [ngClass]="{'button mic': true,'on':true, 'off':false}" (click)="globalAudioToggle(peer.key)" *ngIf="!isOnlyConsumer()"></div>-->
 <!--                    <div [ngClass]="{'button webcam': true,'on':true, 'off':false}" (click)="globalVideoToggle(peer.key)" *ngIf="!isOnlyConsumer()"></div>-->
 <!--                                    <div class="icon info" (click)="getConsumerState(peer.key)"></div>-->
@@ -66,8 +66,8 @@
                     </div>
                   </div>
                 </div>
-                <video autoplay="" playsinline [id]="peer.key" [srcObject]="peer.value.remoteStream"></video>
-                <audio autoplay="" playsinline  [srcObject]="peer.value.audioStream" ></audio>
+                <video autoplay="" playsinline [id]="peer.key" [srcObject]="peer.value.remoteVideoTrack"></video>
+                <audio autoplay="" playsinline  [srcObject]="peer.value.remoteAudioTrack?peer.value.remoteAudioTrack:undefined" ></audio>
                 <canvas class="face-detection"></canvas>
                 <div class="volume-container">
                   <div class="bar level0"></div>

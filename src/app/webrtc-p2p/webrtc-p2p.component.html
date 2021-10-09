@@ -1,0 +1,141 @@
+
+<mat-sidenav-container class="example-container">
+  <mat-sidenav *ngIf="isMeetingReady && !isOnlyConsumer"  #sidenav mode="side" position="end" [(opened)]="opened"  >
+    <div class="md-toolbar-tools">
+      <div class="wraper-v" style="min-width:20vw">
+        <mat-list >
+          <div mat-subheader>Users</div>
+          <mat-list-item *ngFor="let peer of meetingMembers | keyvalue" >
+            <div mat-line>
+              <button mat-icon-button #trigger="matMenuTrigger"  [matMenuTriggerFor]="menu">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              {{peer.key}}
+            </div>
+            <mat-menu #menu="matMenu" >
+              <button mat-menu-item (click)="localAudioToggle(peer.key)">
+                <mat-icon >{{ peer.value.produceAudioEnabled ?'mic_off':'mic_on' }}</mat-icon>
+                {{ peer.value.produceAudioEnabled ? 'Mute Off': 'Mute Off' }}
+              </button>
+              <button  mat-menu-item (click)="localVideoToggle(peer.key)">
+                <mat-icon>{{ peer.value.produceVideoEnabled ?'videocam_off':'videocam_on' }}</mat-icon>
+                {{ peer.value.produceVideoEnabled ? 'Video Off': 'Video On' }}
+              </button>
+              <button mat-menu-item (click)="globalAudioToggle(peer.key)" *ngIf="isMeetingCreator">
+                <mat-icon >{{ peer.value.produceAudioAllowed ?'mic_off':'mic_on' }}</mat-icon>
+                {{ peer.value.produceAudioAllowed ? 'Session Mute Off': 'Session Mute Off' }}
+              </button>
+              <button  mat-menu-item (click)="globalVideoToggle(peer.key)" *ngIf="isMeetingCreator">
+                <mat-icon>{{ peer.value.produceVideoAllowed ?'videocam_off':'videocam_on' }}</mat-icon>
+                {{ peer.value.produceVideoAllowed ? 'Session Video Off': 'Session Video On' }}
+              </button>
+              <!--              <button  mat-menu-item (click)="printConsumerScreen(peer.key)">-->
+              <!--                print-->
+              <!--              </button>-->
+              <div mat-menu-item>
+                <mat-slider min="0.1" max="1" step="0.1" [value]="peer.value.volume?peer.value.volume:1" (change)="volumeChange($event,peer.key)" ></mat-slider>
+              </div>
+            </mat-menu>
+          </mat-list-item>
+        </mat-list>
+      </div>
+    </div>
+  </mat-sidenav>
+  <mat-sidenav-content>
+    <div id="mediasoup-demo-app-container" >
+      <div data-component="Room" *ngIf="isMeetingReady">
+        <div data-component="Notifications"></div>
+<!--        <div class="state" *ngIf="isBroadcasting">-->
+<!--          <div class="icon connected">-->
+<!--          </div>-->
+<!--          <p class="text connected">Broadcasting!</p>-->
+<!--        </div>-->
+        <div class="room-link-wrapper">
+          <!--          <div class="room-link">-->
+          <!--            <a class="link" rel="noopener noreferrer" target="_blank" (click)="sidenav.toggle()" *ngIf="!isOnlyConsumer()">Meeting link</a>-->
+          <!--          </div>-->
+          <div class="room-link">
+            <a class="link" rel="noopener noreferrer" target="_blank" (click)="getMeetingLink()" *ngIf="!isOnlyConsumer">Meeting link</a>
+          </div>
+<!--          <div class="room-link" *ngIf="isBroadcasting">-->
+<!--            <a class="link" rel="noopener noreferrer" target="_blank" (click)="getBroadcastingLink()" *ngIf="!isOnlyConsumer()">Broadcasting link</a>-->
+<!--          </div>-->
+
+        </div>
+        <div data-component="Peers" >
+          <div class="peer-container" *ngFor="let peer of meetingMembers | keyvalue" >
+            <div data-component="Peer" >
+              <div class="indicators">
+                <div [ngClass]="{'icon': true,'mic-off':!peer.value.produceAudioEnabled || !peer.value.produceAudioAllowed }" ></div>
+                <div [ngClass]="{'icon': true,'webcam-off': !peer.value.produceVideoEnabled || !peer.value.produceVideoAllowed}" ></div>
+              </div>
+              <div data-component="PeerView">
+                <div class="info">
+                  <div class="icons">
+<!--                    <div [ngClass]="{'button mic': true,'on':true, 'off':false}" (click)="getMemberPeerConnection(peer.value, peer)" *ngIf="!isOnlyConsumer()"></div>-->
+<!--                    <div [ngClass]="{'button mic': true,'on':true, 'off':false}" (click)="globalAudioToggle(peer.key)" *ngIf="!isOnlyConsumer()"></div>-->
+<!--                    <div [ngClass]="{'button webcam': true,'on':true, 'off':false}" (click)="globalVideoToggle(peer.key)" *ngIf="!isOnlyConsumer()"></div>-->
+                    <div class="icon info" (click)="printStreams(peer.key)"></div>
+<!--                    <div class="icon stats"><span class="icon stats" (click)="getConsumerState(peer.key)"></span></div>-->
+                  </div>
+                  <div class="peer">
+                    <span class="display-name">{{peer.value.nickname}}</span>
+                    <div class="row">
+                      <span class="device-icon edge"></span><span class="device-version"></span>
+                    </div>
+                  </div>
+                </div>
+                <video autoplay="" playsinline [id]="peer.key" [srcObject]="getMeetingMemberVideoStream(peer.key)" *ngIf="peer.value.produceVideoAllowed && peer.value.produceVideoEnabled"></video>
+                <audio autoplay="" playsinline  [srcObject]="getMeetingMemberAudioStream(peer.key)" *ngIf="peer.value.produceAudioAllowed && peer.value.produceAudioEnabled"></audio>
+                <canvas class="face-detection"></canvas>
+                <div class="volume-container">
+                  <div class="bar level0"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="me-container">
+          <div data-component="Me">
+            <div class="controls">
+              <div [ngClass]="{'button mic': true,'on':meetingMember.produceAudioEnabled, 'off':!meetingMember.produceAudioEnabled}" (click)="toggleAudio()"></div>
+              <div [ngClass]="{'button webcam': true,'on':meetingMember.produceVideoEnabled, 'off':!meetingMember.produceVideoEnabled}" (click)="toggleVideo()"></div>
+<!--              <div class="button share off" (click)="startBroadcastingSession()" ></div>-->
+<!--              <div class="button stats off" (click)="endBroadcastingSession()" ></div>-->
+            </div>
+            <div data-component="PeerView" *ngIf="meetingMember">
+              <div class="info">
+                <div class="icons">
+                  <div class="icon info" (click)="printMeetingMembers()"></div>
+<!--                  <div class="icon stats"></div>-->
+                </div>
+                <div class="peer is-me">
+              <span class="display-name editable" tabindex="0">
+                {{ meetingMember.nickname }}
+              </span>
+                  <div class="row">
+                    <span class="device-icon chrome"></span>
+                    <span class="device-version"></span>
+                  </div>
+                </div>
+              </div>
+              <video autoplay class="is-me" playsinline [srcObject]="localStream" *ngIf="this.meetingMember.produceVideoEnabled" [volume]="0" [muted]="true"></video>
+              <canvas class="face-detection is-me"></canvas>
+              <div class="volume-container">
+                <div class="bar" [ngClass]="'level' + audioLevel"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </mat-sidenav-content>
+</mat-sidenav-container>
+
+
+
+
+
+
+
+

@@ -22,14 +22,17 @@ export class SignalingService {
   public onConnect(): Observable<string> {
     return this.socket.fromEvent('connect');
   }
-  public joinMeeting(payload: {
+  public initReceive(payload: {
     meetingMemberId: string;
     meetingId: string;
   }): void {
-    this.socket.emit('joinMeeting', payload);
+    this.socket.emit('initReceive', payload);
   }
-  public onMemberJoin(): Observable<any> {
-    return this.socket.fromEvent('memberJoin');
+  public onInitReceive(): Observable<any> {
+    return this.socket.fromEvent('initReceive');
+  }
+  public onInitSend(): Observable<any> {
+    return this.socket.fromEvent('initSend');
   }
   public onMemberDisconnect(): Observable<any> {
     return this.socket.fromEvent('memberDisconnect');
@@ -49,17 +52,28 @@ export class SignalingService {
     return this.socket.fromEvent('iceCandidate');
   }
 
-  offer(payload: { id: string; target: string; sdp: any }): void {
+  offer(payload: {
+    id: string;
+    target: string;
+    targetSocketId: string;
+    sdp: any;
+  }): void {
     this.socket.emit('offer', payload);
   }
 
-  answer(payload: { id: string; target: string; sdp: any }): void {
+  answer(payload: {
+    id: string;
+    target: string;
+    targetSocketId: string;
+    sdp: any;
+  }): void {
     this.socket.emit('answer', payload);
   }
 
   iceCandidate(payload: {
     id: string;
     target: string;
+    targetSocketId: string;
     candidate: RTCIceCandidate;
   }): void {
     this.socket.emit('iceCandidate', payload);
@@ -71,5 +85,9 @@ export class SignalingService {
 
   broadcast(event: string, payload: any) {
     this.socket.emit(event, payload);
+  }
+
+  initSend(payload: { socketId: string; meetingMemberId: string }): any {
+    this.socket.emit('initSend', payload);
   }
 }

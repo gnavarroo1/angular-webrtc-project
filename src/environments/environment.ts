@@ -25,7 +25,7 @@ export const environment = {
       },
     },
     wss: {
-      url: 'ws://127.0.0.1:3001/',
+      url: 'ws://127.0.0.1:3000/',
       namespaces: {
         meeting: 'meeting-events',
       },

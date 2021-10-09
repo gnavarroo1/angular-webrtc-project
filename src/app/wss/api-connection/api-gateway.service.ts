@@ -16,11 +16,9 @@ export class ApiGatewayService {
       );
     });
   }
-
   onConnectionReady(): Observable<any> {
     return this.socket.fromEvent('connect');
   }
-
   async joinMeeting(payload: MeetingMemberDto): Promise<any> {
     return new Promise<any>((resolve, reject) => {
       try {
@@ -31,29 +29,24 @@ export class ApiGatewayService {
         reject(e);
       }
     });
-
-    // this.socket.emit('join-meeting', { ...payload });
   }
-
   onJoinMeeting(): Observable<any> {
     return this.socket.fromEvent('joinMeeting');
   }
-
   updateMeetingParticipant(payload: any) {
     this.socket.emit('updateParticipant', { ...payload });
+  }
+  onMeetingMemberDisconnected(): Observable<any> {
+    return this.socket.fromEvent('meetingMemberDisconnected');
   }
 
   endMeetingSession(payload: any) {
     this.socket.emit('endMeetingSession', { ...payload });
   }
 
-  onDisconnect(): Observable<any> {
-    return this.socket.fromEvent('onDisconnect');
-  }
   startMeetingBroadcast(payload: any) {
     this.socket.emit('startMeetingBroadcast', { ...payload });
   }
-
   endMeetingBroadcast(payload: any) {
     this.socket.emit('endMeetingBroadcast', { ...payload });
   }
@@ -62,5 +55,82 @@ export class ApiGatewayService {
   }
   onEndMeetingBroadcast(): Observable<any> {
     return this.socket.fromEvent('endBroadcastingSession');
+  }
+
+  async toggleAudio(payload: {
+    meetingId: string;
+    meetingMemberId: string;
+    produceAudioEnabled: boolean;
+  }): Promise<any> {
+    return new Promise<any>((resolve, reject) => {
+      try {
+        this.socket.emit('toggleAudio', payload, (response: any) => {
+          resolve(response);
+        });
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+  async toggleVideo(payload: {
+    meetingId: string;
+    meetingMemberId: string;
+    produceVideoEnabled: boolean;
+  }): Promise<any> {
+    return new Promise<any>((resolve, reject) => {
+      try {
+        this.socket.emit('toggleVideo', payload, (response: any) => {
+          resolve(response);
+        });
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  onToggleAudio(): Observable<any> {
+    return this.socket.fromEvent('toggleAudio');
+  }
+
+  onToggleVideo(): Observable<any> {
+    return this.socket.fromEvent('toggleVideo');
+  }
+
+  async toggleGlobalAudio(payload: {
+    meetingId: string;
+    meetingMemberId: string;
+    produceAudioAllowed: boolean;
+  }): Promise<any> {
+    return new Promise<any>((resolve, reject) => {
+      try {
+        this.socket.emit('toggleGlobalAudio', payload, (response: any) => {
+          resolve(response);
+        });
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+  async toggleGlobalVideo(payload: {
+    meetingId: string;
+    meetingMemberId: string;
+    produceVideoAllowed: boolean;
+  }): Promise<any> {
+    return new Promise<any>((resolve, reject) => {
+      try {
+        this.socket.emit('toggleGlobalVideo', payload, (response: any) => {
+          resolve(response);
+        });
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  onToggleGlobalAudio(): Observable<any> {
+    return this.socket.fromEvent('toggleGlobalAudio');
+  }
+  onToggleGlobalVideo(): Observable<any> {
+    return this.socket.fromEvent('toggleGlobalVideo');
   }
 }
