@@ -1,1 +1,28 @@
-<p>lobby works!</p>
+<mat-toolbar color="primary">
+  <span>WebRTC</span>
+  <span class="example-spacer"></span>
+  <span class="example-spacer"></span>
+  <!-- <button mat-button routerLink="/dashboard">LogOut</button> -->
+  <button mat-icon-button class="example-icon" routerLink="/" aria-label="Example icon-button with menu icon">
+    <mat-icon>logout</mat-icon>
+  </button>
+</mat-toolbar>
+
+<div class="container">
+  <mat-toolbar>
+    <span>Dashboard</span>
+  </mat-toolbar>
+</div>
+
+<app-navbar></app-navbar>
+
+<div class="wrapper-body">
+  <div class="block animate__animated animate__fadeIn" routerLink="meetings">
+    <div class="btn-block">
+      <i class="uil uil-video"></i>
+    </div>
+    <div class="label-title">Nueva reunión</div>
+  </div>
+</div>
+
+<router-outlet></router-outlet>

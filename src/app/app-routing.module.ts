@@ -21,17 +21,17 @@ const routes: Routes = [
     component: RegisterComponent
   },
   {
-    path: 'meetings',
+    path: 'lobby/meetings',
     component: TestComponent,
     data: { memberType: MemberType.BOTH },
   },
   {
-    path: 'meetings/join/:id',
+    path: 'lobby/meetings/join/:id',
     component: TestComponent,
     data: { memberType: MemberType.BOTH },
   },
   {
-    path: 'meetings/broadcasting/:id',
+    path: 'lobby/meetings/broadcasting/:id',
     component: TestComponent,
     data: { memberType: MemberType.CONSUMER },
   },

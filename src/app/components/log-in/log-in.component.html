@@ -1,3 +1,11 @@
+<mat-toolbar color="primary" class="app-header">
+  <div><a href="https://www.positronx.io" target="_blank" class="positronx">PositronX.io</a></div>
+  <span class="nav-tool-items">
+<!--    <a mat-button routerLink="login" routerLinkActive="active">Log in</a>-->
+    <a mat-button mat-raised-button (click)="goToRegister()" routerLinkActive="active">Register</a>
+  </span>
+</mat-toolbar>
+
 <div class="login-wrapper" fxLayout="row" fxLayoutAlign="center center">
 
   <mat-card class="box">
@@ -23,7 +31,7 @@
           Your password must have lower case, upper case and numeric characters.
         </div>
       </mat-card-content>
-      <button [disabled]="loading" mat-stroked-button color="accent" class="btn-block">Log in</button>
+      <button [disabled]="loading" type="submit" mat-stroked-button color="accent" class="btn-block">Log in</button>
     </form>
   </mat-card>
 

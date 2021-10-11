@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import {AbstractControl, FormBuilder, ValidationErrors, ValidatorFn, Validators} from "@angular/forms";
-
+import { Router } from '@angular/router';
 @Component({
   selector: 'app-log-in',
   templateUrl: './log-in.component.html',
@@ -29,10 +29,15 @@ export class LogInComponent  {
     ]
   });
 
-  constructor(private fb: FormBuilder) { }
+  constructor(private fb: FormBuilder, private router: Router) { }
 
+  goToRegister() {
+    this.router.navigateByUrl('/register');
+  }
 
-
+  goToDashboard(){
+    this.router.navigateByUrl('/lobby');
+  }
 
   get email() {
     return this.form.controls['email'];
@@ -51,6 +56,8 @@ export class LogInComponent  {
     if (this.form.invalid) {
       return;
     }
+
+    this.goToDashboard();
 
     this.loading = true;
 

@@ -5,7 +5,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { FlexLayoutModule } from '@angular/flex-layout';
 import { NgModule, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { AngularMaterialModule } from './angular-material.module';
-
+import { CommonModule } from '@angular/common';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { LoggerModule, NgxLoggerLevel } from 'ngx-logger';
@@ -26,10 +26,20 @@ import { LogInComponent } from './components/log-in/log-in.component';
 import { RegisterComponent } from './components/register/register.component';
 import { LobbyComponent } from './components/lobby/lobby.component';
 import { VideoPlayerComponent } from './components/video-player/video-player.component';
+import {MatSliderModule} from "@angular/material/slider";
+import {MatFormFieldModule} from "@angular/material/form-field";
+import {MatInputModule} from "@angular/material/input";
+import {MatToolbarModule} from "@angular/material/toolbar";
 @NgModule({
   declarations: [AppComponent, LogInComponent, RegisterComponent, LobbyComponent, VideoPlayerComponent],
   imports: [
-
+    CommonModule,
+    MatSliderModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatToolbarModule,
+    MatIconModule,
+    //
     FormsModule,
     ReactiveFormsModule,
     FlexLayoutModule,
@@ -56,6 +66,14 @@ import { VideoPlayerComponent } from './components/video-player/video-player.com
     MatIconModule,
     MatButtonModule,
     LayoutModule,
+  ],
+  exports: [
+    MatSliderModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatToolbarModule,
+    MatIconModule
   ],
   providers: [],
   bootstrap: [AppComponent],

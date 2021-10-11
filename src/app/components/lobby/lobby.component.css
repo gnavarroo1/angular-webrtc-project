@@ -1,0 +1,78 @@
+.example-spacer {
+  flex: 1 1 auto;
+}
+
+:host {
+  display: block;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-content: center;
+  align-items: center;
+  background-color: #f2f2f5;
+}
+.list-menu {
+  list-style: none;
+  display: flex;
+  margin: 0;
+  padding: 0;
+}
+.list-menu .btn-menu {
+  display: flex;
+  align-items: center;
+  align-content: center;
+  padding: 0.5rem 1rem;
+}
+.list-menu .uil {
+  color: #575764;
+  font-size: 1.5rem;
+}
+.title {
+  padding: 0 1rem;
+  font-weight: 500;
+}
+.wrapper-avatar {
+  display: flex;
+  justify-content: center;
+  align-content: center;
+  align-items: center;
+  padding: 0 1rem;
+}
+.wrapper-avatar img {
+  width: 35px;
+  height: 35px;
+  border-radius: 100px;
+  object-fit: cover;
+}
+.wrapper-body {
+  display: flex;
+  justify-content: center;
+  min-height: 20rem;
+  padding: 2rem;
+}
+.wrapper-body .label-title {
+  text-align: center;
+  padding: 0.5rem;
+  font-weight: 500;
+}
+.wrapper-body .block .btn-block {
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  align-content: center;
+  background-color: tomato;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.5px 10px rgba(0, 0, 0, 0.05), 0 4px 80px rgba(0, 0, 0, 0.1);
+  border: solid 3px #000;
+  width: 10rem;
+  height: 10rem;
+  color: white;
+  font-size: 5rem;
+}
+.wrapper-body .block .btn-block:hover {
+  opacity: 0.45;
+  transition: all ease 300ms;
+}
+
