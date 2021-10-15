@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { ApiMeetingNamespaceSocket } from '../types/custom-sockets';
 import { Observable } from 'rxjs';
 import { MemberType } from '../types/defines';
-import { MeetingMemberDto } from '../../meetings/types/defines';
+import { MeetingMemberDto, TChatDto } from '../../meetings/types/defines';
 
 @Injectable({
   providedIn: 'root',
@@ -57,6 +57,25 @@ export class ApiGatewayService {
     return this.socket.fromEvent('endBroadcastingSession');
   }
 
+  startScreenSharing(payload: { meetingId: string; meetingMemberId: string }) {
+    this.socket.emit('startScreenSharing', {
+      ...payload,
+      isScreenSharing: true,
+    });
+  }
+  stopScreenSharing(payload: { meetingId: string; meetingMemberId: string }) {
+    this.socket.emit('endScreenSharing', {
+      ...payload,
+      isScreenSharing: false,
+    });
+  }
+  onStartScreenSharing(): Observable<any> {
+    return this.socket.fromEvent('startScreenSharing');
+  }
+  onStopScreenSharing(): Observable<any> {
+    return this.socket.fromEvent('endScreenSharing');
+  }
+
   async toggleAudio(payload: {
     meetingId: string;
     meetingMemberId: string;
@@ -87,15 +106,12 @@ export class ApiGatewayService {
       }
     });
   }
-
   onToggleAudio(): Observable<any> {
     return this.socket.fromEvent('toggleAudio');
   }
-
   onToggleVideo(): Observable<any> {
     return this.socket.fromEvent('toggleVideo');
   }
-
   async toggleGlobalAudio(payload: {
     meetingId: string;
     meetingMemberId: string;
@@ -126,11 +142,44 @@ export class ApiGatewayService {
       }
     });
   }
-
   onToggleGlobalAudio(): Observable<any> {
     return this.socket.fromEvent('toggleGlobalAudio');
   }
   onToggleGlobalVideo(): Observable<any> {
     return this.socket.fromEvent('toggleGlobalVideo');
+  }
+
+  async toggleScreenSharePermission(payload: {
+    meetingId: string;
+    meetingMemberId: string;
+    canScreenShare: boolean;
+  }): Promise<any> {
+    return new Promise<any>((resolve, reject) => {
+      try {
+        this.socket.emit(
+          'toggleScreenSharePermission',
+          payload,
+          (response: any) => {
+            resolve(response);
+          }
+        );
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  onToggleScreenSharePermission(): Observable<any> {
+    return this.socket.fromEvent('toggleScreenSharePermission');
+  }
+
+  sendMessage(message: TChatDto, meetingId: string) {
+    this.socket.emit('chatMessage', {
+      meetingId: meetingId,
+      message: message,
+    });
+  }
+  onMessage(): Observable<any> {
+    return this.socket.fromEvent('chatMessage');
   }
 }

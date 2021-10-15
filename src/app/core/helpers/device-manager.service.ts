@@ -2,6 +2,17 @@ import { Injectable } from '@angular/core';
 import { Observable, ReplaySubject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 export type Devices = MediaDeviceInfo[];
+
+interface DisplayMediaStreamConstraints {
+  audio?: boolean | MediaTrackConstraints;
+  video?: boolean | MediaTrackConstraints;
+}
+interface IMediaDevices extends MediaDevices {
+  getDisplayMedia(
+    constraints?: DisplayMediaStreamConstraints
+  ): Promise<MediaStream>;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -15,11 +26,11 @@ export class DeviceService {
   constructor() {
     if (navigator && navigator.mediaDevices) {
       navigator.mediaDevices.ondevicechange = (_: Event) => {
-        // this.deviceBroadcast.next(this.getDeviceOptions());
+        this.deviceBroadcast.next(this.getDeviceOptions());
       };
     }
     this._devices = this.deviceBroadcast.asObservable();
-    // this.deviceBroadcast.next(this.getDeviceOptions());
+    this.deviceBroadcast.next(this.getDeviceOptions());
   }
 
   private async permissionsGranted() {
@@ -76,7 +87,6 @@ export class DeviceService {
 
   public async getUserMedia(): Promise<MediaStream> {
     const constraints = this.getMediaDevicesConstraints();
-    console.warn('GET USER MEDIA CONSTRAINTS', constraints);
     return new Promise<MediaStream>((resolve, reject) => {
       navigator.mediaDevices
         .getUserMedia(constraints)
@@ -125,5 +135,20 @@ export class DeviceService {
 
       return constraints;
     }
+  }
+  public async getDisplayMedia(): Promise<MediaStream> {
+    const mediaDevices = navigator.mediaDevices as IMediaDevices;
+    return new Promise((resolve, reject) => {
+      return mediaDevices
+        .getDisplayMedia({
+          video: true,
+        })
+        .then((stream) => {
+          resolve(stream);
+        })
+        .catch((e) => {
+          reject(e);
+        });
+    });
   }
 }

@@ -28,6 +28,11 @@ import { MeetingApiService } from './meetings/services/api/meeting-api.service';
 import { P2pWebrtcService } from './wss/p2p-webrtc.service';
 import { MatListModule } from '@angular/material/list';
 import { MatSliderModule } from '@angular/material/slider';
+import { MeetingDataService } from './meetings/services/meeting-data.service';
+import { SfuWebrtcService } from './wss/mediasoup.service';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { FormsModule } from '@angular/forms';
 
 export function jwtOptionsFactory() {
   return {
@@ -71,6 +76,9 @@ export function jwtOptionsFactory() {
     MatSidenavModule,
     MatListModule,
     MatSliderModule,
+    MatTabsModule,
+    MatCheckboxModule,
+    FormsModule,
   ],
   providers: [
     interceptorProviders,
@@ -78,6 +86,8 @@ export function jwtOptionsFactory() {
     MeetingService,
     MeetingApiService,
     P2pWebrtcService,
+    SfuWebrtcService,
+    MeetingDataService,
   ],
   bootstrap: [AppComponent],
 })

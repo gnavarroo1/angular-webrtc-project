@@ -226,12 +226,7 @@ export class MediasoupWssService {
   async requestMedia(payload: any): Promise<any> {
     return new Promise<any>((resolve, reject) => {
       try {
-        //console.warn(`Emit event ${payload.action}:`);
         this._socket.emit('media', payload, (response: any) => {
-          console.log(
-            `success emitting event: media, ACK from server: ${payload.action}`
-          );
-          //console.warn(`Response from ${payload.action}:`, response);
           resolve(response);
         });
       } catch (e) {

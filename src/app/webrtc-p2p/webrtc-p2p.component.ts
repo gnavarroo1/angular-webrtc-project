@@ -10,7 +10,9 @@ import {
   MeetingServiceType,
   MemberType,
 } from '../meetings/types/defines';
-import { ReplaySubject, Subscription } from 'rxjs';
+import { Subscription } from 'rxjs';
+import { MeetingDataService } from '../meetings/services/meeting-data.service';
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-webrtc-p2p',
@@ -19,22 +21,49 @@ import { ReplaySubject, Subscription } from 'rxjs';
 })
 export class WebrtcP2pComponent implements OnInit, OnDestroy {
   opened = true;
+  // meetingMembers: Map<string, MeetingMemberDto> = new Map<
+  //   string,
+  //   MeetingMemberDto
+  // >();
+  meetingMember!: MeetingMemberDto;
+  volume = 10;
+  subscriptions: Subscription[] = [];
   constructor(
     private readonly logger: NGXLogger,
     private authService: AuthService,
     private tokenManagerService: TokenManagerService,
     private meetingService: MeetingService,
     private activatedRoute: ActivatedRoute,
-    private clipboard: ClipboardService
+    private clipboard: ClipboardService,
+    private meetingDataService: MeetingDataService
   ) {}
-  public meetingMembers: Map<string, MeetingMemberDto> = new Map<
-    string,
-    MeetingMemberDto
-  >();
-  meetingMember!: MeetingMemberDto;
-  volume = 10;
-  private subcriptions: Subscription[] = [];
-  // localStream: MediaStream | undefined;
+
+  get isOnlyConsumer(): boolean {
+    return this.meetingService.meetingMember.memberType === MemberType.CONSUMER;
+  }
+  get isMeetingReady(): boolean {
+    return this.meetingService.isMeetingReady;
+  }
+  get localStream(): MediaStream | undefined {
+    return this.meetingService.localStream;
+  }
+  get audioLevel(): number {
+    return this.meetingService.activeSpeaker
+      ? this.meetingService.activeSpeaker
+      : 0;
+  }
+  get isMeetingCreator(): boolean {
+    return this.meetingService.isMeetingCreator;
+  }
+  get isBroadcasting(): boolean {
+    return this.meetingService.isBroadcasting;
+  }
+  get isDevelopment(): boolean {
+    return environment.development;
+  }
+  get meetingMembers(): Map<string, MeetingMemberDto> {
+    return this.meetingService.meetingMembers;
+  }
   async ngOnInit(): Promise<void> {
     const result = this.tokenManagerService.hasAuthToken();
     if (!result.hasAuthToken || result.isExpired) {
@@ -42,7 +71,6 @@ export class WebrtcP2pComponent implements OnInit, OnDestroy {
         .createTemporalUser()
         .toPromise()
         .then((data) => {
-          console.log(data);
           this.tokenManagerService.saveAuthToken(data.accessToken);
         });
     }
@@ -59,26 +87,29 @@ export class WebrtcP2pComponent implements OnInit, OnDestroy {
         params.id
       )
       .then(() => {
-        this.meetingMembers = this.meetingService.meetingMembers;
+        // this.meetingMembers = this.meetingService.meetingMembers;
         this.meetingMember = this.meetingService.meetingMember;
       });
   }
-  // private eventHandlers() {
-  //   const localStream$ = this.meetingService.localStream$.subscribe((value) => {
-  //     this.localStream = value;
-  //   });
-  //   this.subcriptions.push(localStream$);
-  // }
+
   async getMeetingLink() {
     if (this.meetingService.meetingId) {
       this.clipboard.copyFromContent(
         window.location.origin +
-          '/meetings/join/' +
+          '/meetings-sfu/join/' +
           this.meetingService.meetingId
       );
     }
   }
-
+  async getBroadcastingLink() {
+    if (this.meetingService.meetingId) {
+      this.clipboard.copyFromContent(
+        window.location.origin +
+          '/meetings-sfu/broadcasting/' +
+          this.meetingService.meetingId
+      );
+    }
+  }
   async toggleAudio(): Promise<void> {
     if (this.meetingMember) {
       if (this.meetingMember.produceAudioEnabled) {
@@ -90,33 +121,21 @@ export class WebrtcP2pComponent implements OnInit, OnDestroy {
     // this.audioEnabled = !this.audioEnabled;
   }
   async toggleVideo(): Promise<void> {
+    console.log(this.meetingMember);
     if (this.meetingMember) {
       if (this.meetingMember.produceVideoEnabled) {
         this.meetingService.videoPause();
+        console.log(this.meetingMember);
+        console.log(this.meetingService.localStream);
+        console.log(this.meetingDataService.localStream);
       } else {
         this.meetingService.videoResume();
+        console.log(this.meetingService.videoTrack?.enabled);
+        console.log(this.meetingService.localStream);
+        console.log(this.meetingDataService.localStream);
+        console.log(this.meetingMember);
       }
     }
-  }
-
-  get isOnlyConsumer(): boolean {
-    return this.meetingService.meetingMember.memberType === MemberType.CONSUMER;
-  }
-  get isMeetingReady(): boolean {
-    return this.meetingService.isMeetingReady;
-  }
-
-  printMeetingMembers() {
-    console.log(this.meetingService.meetingMembers);
-    const consumers = this.meetingService.getConsumers();
-    consumers.forEach((value) => {
-      console.warn('consumer', value.rtcPeerConnection.getTransceivers());
-    });
-    console.log(this.localStream);
-  }
-  printStreams(key: string): void {
-    console.log('audio stream', this.meetingService.getMeetingMemberAudio(key));
-    console.log('video stream', this.meetingService.getMeetingMemberVideo(key));
   }
   getMeetingMemberAudioStream(key: string): MediaStream | undefined {
     return this.meetingService.getMeetingMemberAudio(key);
@@ -124,21 +143,9 @@ export class WebrtcP2pComponent implements OnInit, OnDestroy {
   getMeetingMemberVideoStream(key: string): MediaStream | undefined {
     return this.meetingService.getMeetingMemberVideo(key);
   }
-  get localStream(): MediaStream | undefined {
-    return this.meetingService.localStream;
+  getMeetingMemberScreenStream(key: string): MediaStream | undefined {
+    return this.meetingService.getMeetingMemberScreenVideo(key);
   }
-  get audioLevel(): number {
-    return this.meetingService.activeSpeaker
-      ? this.meetingService.activeSpeaker
-      : 0;
-  }
-  ngOnDestroy(): void {
-    this.subcriptions.forEach((sub) => {
-      sub.unsubscribe();
-    });
-    this.meetingService.onDestroy();
-  }
-
   volumeChange(event: any, key: string) {
     const peer = this.meetingMembers.get(key);
     console.log(event.value);
@@ -152,8 +159,9 @@ export class WebrtcP2pComponent implements OnInit, OnDestroy {
       }
     }
   }
-
   globalAudioToggle(key: string): void {
+    console.log(key);
+    console.log(this.meetingMembers.get(key));
     this.meetingService.globalAudioToggle(key);
   }
   globalVideoToggle(key: string): void {
@@ -161,8 +169,69 @@ export class WebrtcP2pComponent implements OnInit, OnDestroy {
   }
   localAudioToggle(key: string): void {}
   localVideoToggle(key: string): void {}
+  screenSharing(): void {
+    this.meetingService.startScreenShare();
+  }
+  handleBroadcast(): void {
+    if (!this.isBroadcasting) {
+      this.meetingService.startBroadcastingSession();
+    } else {
+      this.meetingService.endBroadcastingSession();
+    }
+  }
+  //Temporal functions
+  printMeetingMembers() {
+    console.log(this.producerMeetingMembers);
 
-  get isMeetingCreator(): boolean {
-    return this.meetingService.isMeetingCreator;
+    // this.meetingService.closeTransport();
+    // console.warn('member', this.meetingService.meetingMembers);
+    // console.warn(this.meetingService.localStream);
+    // const consumers = this.meetingService.getConsumers();
+    // consumers.forEach((value: any) => {
+    //   const member = this.meetingMembers.get(value.id);
+    //   if (member) {
+    //     console.warn(
+    //       member.produceVideoAllowed &&
+    //         member.produceVideoEnabled &&
+    //         !member.isScreenSharing
+    //     );
+    //     console.warn(member.produceVideoAllowed && member.isScreenSharing);
+    //     console.warn(this.meetingService.getMeetingMemberVideo(value.id));
+    //   }
+    //
+    //   console.warn('consumer', value);
+    // });
+  }
+  printStreams(key: string): void {
+    this.meetingService.getSessionStats();
+  }
+  isConsumer(meetingMember: MeetingMemberDto): boolean {
+    return meetingMember.memberType === MemberType.CONSUMER;
+  }
+
+  get producerMeetingMembers(): MeetingMemberDto[] {
+    return Array.from(this.meetingMembers.values()).filter(
+      (item) => item.memberType !== MemberType.CONSUMER
+    );
+  }
+  get consumerMeetingMembers(): MeetingMemberDto[] {
+    return Array.from(this.meetingMembers.values()).filter(
+      (item) => item.memberType === MemberType.CONSUMER
+    );
+  }
+  get messages() {
+    return this.meetingService.messages;
+  }
+  sendMessage(value: string): void {
+    this.meetingService.sendMessage(value);
+  }
+  screenSharePermissionToggle(key: string): void {
+    this.meetingService.screenSharePermissionToggle(key);
+  }
+  ngOnDestroy(): void {
+    this.subscriptions.forEach((sub) => {
+      sub.unsubscribe();
+    });
+    this.meetingService.onDestroy();
   }
 }

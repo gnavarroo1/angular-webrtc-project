@@ -79,6 +79,13 @@ export type MeetingDto = {
   _id: string;
   activeMembers?: any;
 };
+export type TChatDto = {
+  text: string;
+  nickname: string;
+  timestamp: string;
+  meetingMemberId: string;
+};
+
 export type MeetingMemberDto = {
   _id?: string;
   sessionUserId: string;
@@ -88,7 +95,11 @@ export type MeetingMemberDto = {
   memberType: MemberType;
   meetingId?: string;
   isScreenSharing: boolean;
+  videoStream?: MediaStream | undefined;
+  audioStream?: MediaStream | undefined;
+  screenStream?: MediaStream | undefined;
   connectionType: MeetingServiceType;
+  canScreenShare?: boolean;
   produceVideoEnabled?: boolean;
   produceAudioEnabled?: boolean;
   produceAudioAllowed?: boolean;
@@ -116,6 +127,8 @@ export type Stats = { kind: TKind; user_id: string; stats: IPeerStat[] };
 export interface IMemberIdentifier {
   id: string;
   kind: MemberType;
+  volume?: number;
+  isScreenSharing?: boolean;
   producerAudioEnabled?: boolean;
   producerVideoEnabled?: boolean;
   globalAudioEnabled?: boolean;

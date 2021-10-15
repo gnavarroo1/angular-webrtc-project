@@ -21,8 +21,8 @@ export class WssService {
       options: {
         query: {
           token: localStorage.getItem(environment.token.authHeaderKey),
-          session_id: sessionId,
-          user_id: userId,
+          sessionId: sessionId,
+          userId: userId,
         },
       },
     });
@@ -58,6 +58,9 @@ export class WssService {
   }
   onMediaProducerResume(): Observable<any> {
     return this._socket.fromEvent('mediaProducerResume');
+  }
+  onMediaProducerClose(): Observable<any> {
+    return this._socket.fromEvent('mediaProducerClose');
   }
   onMediaActiveSpeaker(): Observable<any> {
     return this._socket.fromEvent('mediaActiveSpeaker');
@@ -104,12 +107,7 @@ export class WssService {
   async requestMedia(payload: any): Promise<any> {
     return new Promise<any>((resolve, reject) => {
       try {
-        //console.warn(`Emit event ${payload.action}:`);
         this._socket.emit('media', payload, (response: any) => {
-          console.log(
-            `success emitting event: media, ACK from server: ${payload.action}`
-          );
-          //console.warn(`Response from ${payload.action}:`, response);
           resolve(response);
         });
       } catch (e) {

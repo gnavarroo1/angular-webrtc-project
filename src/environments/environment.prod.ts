@@ -5,6 +5,7 @@
 import * as uuid from 'uuid';
 
 export const environment = {
+  development: false,
   user_id: uuid.v4(),
   production: false,
   name: 'development',

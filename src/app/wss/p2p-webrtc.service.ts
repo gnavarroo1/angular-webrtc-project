@@ -12,7 +12,9 @@ import {
 import { environment } from '../../environments/environment';
 import { fromPromise } from 'rxjs/internal-compatibility';
 import { takeWhile, timestamp } from 'rxjs/operators';
-import * as stream from 'stream';
+import { MeetingDataService } from '../meetings/services/meeting-data.service';
+const getStats = require('getstats');
+
 export type SignalingHandshakePayload = {
   meetingMemberId: string;
   sdp: RTCSessionDescriptionInit;
@@ -23,139 +25,127 @@ export type SignalingIceCandidatePayload = {
 };
 
 export class P2PConsumer {
-  get inboundVideoBitrate(): number {
-    return this._inboundVideoBitrate;
+  get stopGetStats(): boolean {
+    return this._stopGetStats;
   }
 
-  set inboundVideoBitrate(value: number) {
-    this._inboundVideoBitrate = value;
+  set stopGetStats(value: boolean) {
+    this._stopGetStats = value;
   }
 
-  get inboundAudioBitrate(): number {
-    return this._inboundAudioBitrate;
+  get getStatsResult(): TGetStatsResult {
+    return this._getStatsResult;
   }
 
-  set inboundAudioBitrate(value: number) {
-    this._inboundAudioBitrate = value;
+  set getStatsResult(value: TGetStatsResult) {
+    this._getStatsResult = value;
   }
-
-  get outboundVideoBitrate(): number {
-    return this._outboundVideoBitrate;
+  get screenStream(): MediaStream {
+    return this._screenStream;
   }
-
-  set outboundVideoBitrate(value: number) {
-    this._outboundVideoBitrate = value;
-  }
-
-  get outboundAudioBitrate(): number {
-    return this._outboundAudioBitrate;
-  }
-
-  set outboundAudioBitrate(value: number) {
-    this._outboundAudioBitrate = value;
+  set screenStream(value: MediaStream) {
+    this._screenStream = value;
   }
   get socketId(): string {
     return this._socketId;
   }
-
   set socketId(value: string) {
     this._socketId = value;
   }
   get screenSendTransceiver(): RTCRtpTransceiver {
     return this._screenSendTransceiver;
   }
-
   set screenSendTransceiver(value: RTCRtpTransceiver) {
     this._screenSendTransceiver = value;
   }
   get noiseRecvTransceiver(): RTCRtpTransceiver {
     return this._noiseRecvTransceiver;
   }
-
   set noiseRecvTransceiver(value: RTCRtpTransceiver) {
     this._noiseRecvTransceiver = value;
   }
-
   get videoRecvTransceiver(): RTCRtpTransceiver {
     return this._videoRecvTransceiver;
   }
-
   set videoRecvTransceiver(value: RTCRtpTransceiver) {
     this._videoRecvTransceiver = value;
   }
-
   get screenRecvTransceiver(): RTCRtpTransceiver {
     return this._screenRecvTransceiver;
   }
-
   set screenRecvTransceiver(value: RTCRtpTransceiver) {
     this._screenRecvTransceiver = value;
   }
   get noiseSendTransceiver(): RTCRtpTransceiver {
     return this._noiseSendTransceiver;
   }
-
   set noiseSendTransceiver(value: RTCRtpTransceiver) {
     this._noiseSendTransceiver = value;
   }
-
   get videoSendTransceiver(): RTCRtpTransceiver {
     return this._videoSendTransceiver;
   }
-
   set videoSendTransceiver(value: RTCRtpTransceiver) {
     this._videoSendTransceiver = value;
   }
   get remoteVideoTrack(): MediaStream {
     return this._remoteVideoTrack;
   }
-
   set remoteVideoTrack(value: MediaStream) {
     // const audioTracks = this.remoteStream.getAudioTracks();
     this._remoteVideoTrack = value;
   }
-
   get remoteAudioTrack(): MediaStream {
     return this._remoteAudioTrack;
   }
-
   set remoteAudioTrack(value: MediaStream) {
     this._remoteAudioTrack = value;
   }
-
   get id(): string {
     return this._id;
   }
-
   get rtcPeerConnection(): RTCPeerConnection {
     return this._rtcPeerConnection;
   }
   get closed(): boolean {
     return this._closed;
   }
-
-  set pausedAudio(value: boolean) {
-    this._audioPaused = value;
+  get polite(): boolean {
+    return this._polite;
   }
-  get pausedAudio(): boolean {
-    return this._audioPaused;
+  set polite(value: boolean) {
+    this._polite = value;
   }
-
-  get pausedVideo(): boolean {
-    return this._videoPaused;
+  get connected(): boolean {
+    return this._connected;
   }
-  set pausedVideo(value: boolean) {
-    this._videoPaused = value;
+  set connected(value: boolean) {
+    this._connected = value;
   }
-
+  // get remoteStream(): MediaStream {
+  //   return this._remoteStream;
+  // }
+  // set remoteStream(value: MediaStream) {
+  //   this._remoteStream = value;
+  // }
+  get ignoreOffer(): boolean {
+    return this._ignoreOffer;
+  }
+  set ignoreOffer(value: boolean) {
+    this._ignoreOffer = value;
+  }
+  get makingOffer(): boolean {
+    return this._makingOffer;
+  }
+  set makingOffer(value: boolean) {
+    this._makingOffer = value;
+  }
   // Closed flag.
   private _closed = false;
   private _ignoreOffer = false;
   private _makingOffer = false;
   private _id: string;
   private _rtcPeerConnection: RTCPeerConnection;
-  private _audioPaused!: boolean;
-  private _videoPaused!: boolean;
   private _connected = false;
   private _polite: boolean;
   private _noiseSendTransceiver!: RTCRtpTransceiver;
@@ -165,33 +155,73 @@ export class P2PConsumer {
   private _videoRecvTransceiver!: RTCRtpTransceiver;
   private _screenRecvTransceiver!: RTCRtpTransceiver;
   private _socketId: string;
-  get polite(): boolean {
-    return this._polite;
-  }
-  set polite(value: boolean) {
-    this._polite = value;
-  }
-
-  get connected(): boolean {
-    return this._connected;
-  }
-  set connected(value: boolean) {
-    this._connected = value;
-  }
-
   private _remoteVideoTrack!: MediaStream;
   private _remoteAudioTrack!: MediaStream;
-  private _remoteStream: MediaStream = new MediaStream();
-  private timestampPrev: number | undefined;
-  private bytesInAudioPrev: number | undefined;
-  private bytesInVideoPrev: number | undefined;
-  private bytesOutAudioPrev: number | undefined;
-  private bytesOutVideoPrev: number | undefined;
-  public getStats$: Subscription | undefined;
-  private _inboundVideoBitrate = 0;
-  private _inboundAudioBitrate = 0;
-  private _outboundVideoBitrate = 0;
-  private _outboundAudioBitrate = 0;
+  private _screenStream!: MediaStream;
+  private _stopGetStats = false;
+  private _getStatsResult: TGetStatsResult = {
+    audio: {
+      send: {
+        availableBandwidth: 0,
+        streams: 0,
+        framerateMean: 0,
+        bitrateMean: 0,
+      },
+      recv: {
+        availableBandwidth: 0,
+        streams: 0,
+        framerateMean: 0,
+        bitrateMean: 0,
+      },
+      bytesSent: 0,
+      bytesReceived: 0,
+      latency: 0,
+      packetsLost: 0,
+    },
+    video: {
+      send: {
+        availableBandwidth: 0,
+        streams: 0,
+        framerateMean: 0,
+        bitrateMean: 0,
+      },
+      recv: {
+        availableBandwidth: 0,
+        streams: 0,
+        framerateMean: 0,
+        bitrateMean: 0,
+      },
+      bytesSent: 0,
+      bytesReceived: 0,
+      latency: 0,
+      packetsLost: 0,
+    },
+    bandwidth: {
+      systemBandwidth: 0,
+      sentPerSecond: 0,
+      encodedPerSecond: 0,
+      helper: {
+        audioBytesSent: 0,
+        videoBytestSent: 0,
+        videoBytesSent: 0,
+      },
+      speed: 0,
+    },
+    connectionType: {
+      local: {
+        transport: [],
+        networkType: [],
+      },
+      remote: {
+        transport: [],
+        networkType: [],
+      },
+    },
+    nomore: () => {
+      this._stopGetStats = true;
+    },
+  };
+
   constructor({
     id,
     socketId,
@@ -208,109 +238,182 @@ export class P2PConsumer {
     this._rtcPeerConnection = rtcPeerConnection;
     this._polite = isPolite;
   }
-  pauseAudio(): void {
-    if (this._closed) {
+
+  async getStats(): Promise<void> {
+    if (this.rtcPeerConnection.signalingState === 'closed') {
       return;
     }
-    this._audioPaused = true;
-  }
-  resumeAudio(): void {
-    if (this._closed) {
-      return;
-    }
-    this._audioPaused = false;
-  }
-  pauseVideo(): void {
-    if (this._closed) {
-      return;
-    }
-    this._videoPaused = true;
-  }
-  resumeVideo(): void {
-    if (this._closed) {
-      return;
-    }
-    this._videoPaused = false;
-  }
-  get remoteStream(): MediaStream {
-    return this._remoteStream;
-  }
-  set remoteStream(value: MediaStream) {
-    this._remoteStream = value;
-  }
-  private previousResult: any;
-  get ignoreOffer(): boolean {
-    return this._ignoreOffer;
-  }
-  set ignoreOffer(value: boolean) {
-    this._ignoreOffer = value;
-  }
-  get makingOffer(): boolean {
-    return this._makingOffer;
-  }
-  set makingOffer(value: boolean) {
-    this._makingOffer = value;
-  }
-  async getStats(): Promise<any> {}
-  private remoteStats(results: RTCStatsReport) {
-    results.forEach((report) => {
-      let bitrate: number | undefined;
-      const now = report.timestamp;
-      switch (report.type) {
-        case 'inbound-rtp': {
-          switch (report.mediaType) {
-            case 'video': {
-              const bytes = report.bytesReceived;
-              if (this.timestampPrev) {
-                if (this.bytesInVideoPrev) {
-                  bitrate =
-                    (8 * (bytes - this.bytesInVideoPrev)) /
-                    (now - this.timestampPrev);
-                  bitrate = Math.floor(bitrate);
-                }
-              }
-              this.bytesInVideoPrev = bytes;
-              if (bitrate) {
-                this.inboundVideoBitrate = bitrate;
-              }
-              break;
-            }
-            case 'audio': {
-              const bytes = report.bytesReceived;
-              if (this.timestampPrev) {
-                if (this.bytesInAudioPrev) {
-                  bitrate =
-                    (8 * (bytes - this.bytesInAudioPrev)) /
-                    (now - this.timestampPrev);
-                  bitrate = Math.floor(bitrate);
-                }
-              }
-              this.bytesInAudioPrev = bytes;
-              if (bitrate) {
-                this.inboundVideoBitrate = bitrate;
-              }
-              break;
-            }
-            default:
-              console.warn('report', report);
-          }
-          this.timestampPrev = now;
-          break;
-        }
-        case 'outbound-rtp': {
-          console.warn('outbound-rtp', report);
-          break;
-        }
-        default:
-          console.warn('default type report', report);
-          break;
+    await getStats(this.rtcPeerConnection, (result: TGetStatsResult) => {
+      console.log(Date.now());
+      if (this._closed) {
+        result.nomore();
+      } else {
+        this._getStatsResult = result;
       }
+      console.warn('REPORT', this._closed, result, this._getStatsResult);
+      return;
     });
+    return;
+    // const summary: Record<string, any> = {};
+    // this.rtcPeerConnection.getStats(null).then((res) => {
+    //   res.forEach((report) => {
+    //     summary.timestamp = report.timestamp;
+    //     if (report.type == 'outbound-rtp') {
+    //       console.error('report', report);
+    //       if (report.packetsLost) {
+    //         summary.packetsLost = report.packetsLost;
+    //       }
+    //       if (report.packetsSent) {
+    //         summary.packetsSent = report.packetsSent;
+    //       }
+    //       if (report.bytesSent) {
+    //         summary.bytesSent = (report.bytesSent / 1024000).toFixed(2);
+    //         if (this.bytesOutVideoPrev && this.timestampPrev) {
+    //           summary.videoOutBitrate =
+    //             (8 * (report.bytesSent - this.bytesOutVideoPrev)) /
+    //             (report.timestamp - this.timestampPrev);
+    //           summary.videoOutBitrate = Math.floor(summary.videoOutBitrate);
+    //         }
+    //         this.bytesOutVideoPrev = report.bytesSent;
+    //       }
+    //       this.timestampPrev = report.timestamp;
+    //       console.warn('SUMMARY', summary);
+    //     } else if (report.type == 'inbound-rtp' && report.kind == 'video') {
+    //       if (report.bytesReceived) {
+    //         summary.bytesReceived = (report.bytesReceived / 1024000).toFixed(2);
+    //         if (this.bytesInVideoPrev && this.timestampPrev) {
+    //           summary.videoInBitrate =
+    //             (8 * (report.bytesReceived - this.bytesInVideoPrev)) /
+    //             (report.timestamp - this.timestampPrev);
+    //           summary.videoInBitrate = Math.floor(summary.videoInBitrate);
+    //         }
+    //         this.bytesInVideoPrev = report.bytesReceived;
+    //       }
+    //       this.timestampPrev = report.timestamp;
+    //       console.warn('SUMMARY', summary);
+    //     }
+    //   });
+    // });
   }
+
+  // private remoteStats(results: RTCStatsReport) {
+  //   results.forEach((report) => {
+  //     let bitrate: number | undefined;
+  //     const now = report.timestamp;
+  //     switch (report.type) {
+  //       case 'inbound-rtp': {
+  //         switch (report.mediaType) {
+  //           case 'video': {
+  //             const bytes = report.bytesReceived;
+  //             if (this.timestampPrev) {
+  //               if (this.bytesInVideoPrev) {
+  //                 bitrate =
+  //                   (8 * (bytes - this.bytesInVideoPrev)) /
+  //                   (now - this.timestampPrev);
+  //                 bitrate = Math.floor(bitrate);
+  //               }
+  //             }
+  //             this.bytesInVideoPrev = bytes;
+  //             if (bitrate) {
+  //               this.inboundVideoBitrate = bitrate;
+  //             }
+  //             break;
+  //           }
+  //           case 'audio': {
+  //             const bytes = report.bytesReceived;
+  //             if (this.timestampPrev) {
+  //               if (this.bytesInAudioPrev) {
+  //                 bitrate =
+  //                   (8 * (bytes - this.bytesInAudioPrev)) /
+  //                   (now - this.timestampPrev);
+  //                 bitrate = Math.floor(bitrate);
+  //               }
+  //             }
+  //             this.bytesInAudioPrev = bytes;
+  //             if (bitrate) {
+  //               this.inboundVideoBitrate = bitrate;
+  //             }
+  //             break;
+  //           }
+  //           default:
+  //             console.warn('report', report);
+  //         }
+  //         this.timestampPrev = now;
+  //         break;
+  //       }
+  //       case 'outbound-rtp': {
+  //         console.warn('outbound-rtp', report);
+  //         break;
+  //       }
+  //       default:
+  //         console.warn('default type report', report);
+  //         break;
+  //     }
+  //   });
+  // }
 }
+
+export type TGetStatsResult = {
+  audio: TGetStatsConnectionStream;
+  video: TGetStatsConnectionStream;
+  bandwidth: TGetStatsBandwidth;
+  connectionType: TGetStatsConnectionType;
+  nomore: () => void;
+};
+
+export type TGetStatsBandwidth = {
+  speed: number;
+  systemBandwidth: number;
+  sentPerSecond: number;
+  encodedPerSecond: number;
+  helper: {
+    audioBytesSent: number;
+    videoBytestSent: number;
+    videoBytesSent: number;
+  };
+  availableSendBandwidth?: number;
+  googActualEncBitrate?: number;
+  googAvailableSendBandwidth?: number;
+  googAvailableReceiveBandwidth?: number;
+  googRetransmitBitrate?: number;
+  googTargetEncBitrate?: number;
+  googBucketDelay?: number;
+  googTransmitBitrate?: number;
+};
+export type TGetStatsConnectionStream = {
+  send: TGetStatsConnectionInfo;
+  recv: TGetStatsConnectionInfo;
+  bytesSent: number;
+  bytesReceived: number;
+  latency: number;
+  packetsLost: number;
+};
+
+export type TGetStatsConnectionType = {
+  transport?: string;
+  local?: TGetStatsNetworkInfo;
+  remote?: TGetStatsNetworkInfo;
+};
+export type TGetStatsNetworkInfo = {
+  networkType: string[];
+  transport: string[];
+};
+
+export type TGetStatsConnectionInfo = {
+  availableBandwidth: number;
+  streams: number;
+  framerateMean: number;
+  bitrateMean: number;
+};
 
 @Injectable()
 export class P2pWebrtcService {
+  get localMeetingMember(): MeetingMemberDto {
+    return this._localMeetingMember;
+  }
+  set localMeetingMember(value: MeetingMemberDto) {
+    this._localMeetingMember = value;
+  }
   set localStream(value: MediaStream) {
     this._localStream = value;
   }
@@ -318,11 +421,15 @@ export class P2pWebrtcService {
     this._meetingMemberId = value;
   }
   private _meetingMemberId!: string;
+  private _localMeetingMember!: MeetingMemberDto;
   negotiationsCount = 0;
   events$: Subscription[] = [];
   private _localStream!: MediaStream;
   isSignallingServerConnected$ = new BehaviorSubject<boolean>(false);
-  constructor(private signalingService: SignalingService) {
+  constructor(
+    private signalingService: SignalingService,
+    private meetingDataService: MeetingDataService
+  ) {
     const onConnect$ = this.signalingService.onConnect().subscribe(() => {
       this.isSignallingServerConnected$.next(true);
     });
@@ -402,35 +509,12 @@ export class P2pWebrtcService {
                 sdp: consumer.rtcPeerConnection.localDescription,
               });
             }
-            // await consumer.rtcPeerConnection.setRemoteDescription(payload.sdp);
           } catch (e) {
             console.error(e.message, e.name);
           }
-          //
-          // consumer.rtcPeerConnection
-          //   .setRemoteDescription(new RTCSessionDescription(payload.sdp))
-          //   .then(() => {
-          //     consumer.rtcPeerConnection
-          //       .createAnswer()
-          //       .then((answer) => {
-          //         consumer.rtcPeerConnection
-          //           .setLocalDescription(answer)
-          //           .then(() => {
-          //
-          //           })
-          //           .catch((err) => {
-          //             console.error(err.message, err.stack);
-          //           });
-          //       })
-          //       .catch((err) => {
-          //         console.error(err.message, err.stack);
-          //       });
-          //   })
-          //   .catch((err) => {
-          //     console.error(err.message, err.stack);
-          //   });
         }
       });
+
     const onAnswer$ = this.signalingService
       .onAnswer()
       .subscribe(async (payload: any) => {
@@ -446,6 +530,7 @@ export class P2pWebrtcService {
           console.error(e.message, e.stack);
         }
       });
+
     const onIceCandidate$ = this.signalingService
       .onIceCandidate()
       .subscribe(async (payload: any) => {
@@ -471,6 +556,7 @@ export class P2pWebrtcService {
           console.error(e.message, e.name, payload.candidate);
         }
       });
+
     const onMemberDisconnection$ = this.signalingService
       .onMemberDisconnect()
       .subscribe((payload) => {
@@ -481,6 +567,7 @@ export class P2pWebrtcService {
           this.consumers.delete(payload.meetingMemberId);
         }
       });
+
     this.events$.push(onInitSend$);
     this.events$.push(onOffer$);
     this.events$.push(onAnswer$);
@@ -509,7 +596,9 @@ export class P2pWebrtcService {
             peer.videoSendTransceiver = peer.rtcPeerConnection.addTransceiver(
               track,
               {
-                direction: 'inactive',
+                direction: this.localMeetingMember.produceVideoEnabled
+                  ? 'sendonly'
+                  : 'inactive',
               }
             );
             break;
@@ -517,14 +606,18 @@ export class P2pWebrtcService {
             peer.noiseSendTransceiver = peer.rtcPeerConnection.addTransceiver(
               track,
               {
-                direction: 'inactive',
+                direction: this.localMeetingMember.produceAudioEnabled
+                  ? 'sendonly'
+                  : 'inactive',
               }
             );
             break;
         }
       });
 
-      peer.rtcPeerConnection.ontrack = ({ transceiver, track }) => {
+      peer.rtcPeerConnection.ontrack = ({ transceiver, track, streams }) => {
+        const consumer =
+          this.meetingDataService.meetingMembers.get(meetingMemberId);
         transceiver.receiver.track.onunmute = () => {
           console.log(`${track.kind} unmuted`);
         };
@@ -539,26 +632,39 @@ export class P2pWebrtcService {
             if (!peer.noiseRecvTransceiver) {
               peer.noiseRecvTransceiver = transceiver;
             }
-            if (peer.remoteAudioTrack) {
-              return;
-            } else {
+            if (!peer.remoteAudioTrack) {
+              if (consumer) {
+                consumer.videoStream = new MediaStream([track]);
+              }
               peer.remoteAudioTrack = new MediaStream([track]);
             }
-            return;
-          case 'video':
-            if (
-              peer.videoRecvTransceiver &&
-              peer.videoRecvTransceiver.mid !== transceiver.mid
-            ) {
-              peer.screenRecvTransceiver = transceiver;
-            } else if (!peer.videoRecvTransceiver) {
-              peer.videoRecvTransceiver = transceiver;
+            break;
+          case 'video': {
+            if (streams && streams.length > 0) {
+              if (!peer.screenRecvTransceiver) {
+                peer.screenRecvTransceiver = transceiver;
+              }
+              if (!peer.screenStream) {
+                if (consumer) {
+                  consumer.screenStream = streams[0];
+                }
+                peer.screenStream = streams[0];
+              }
+            } else {
+              if (!peer.videoRecvTransceiver) {
+                peer.videoRecvTransceiver = transceiver;
+              }
+              if (!peer.remoteVideoTrack) {
+                if (consumer) {
+                  consumer.videoStream = new MediaStream([track]);
+                }
+                peer.remoteVideoTrack = new MediaStream([track]);
+              }
             }
-            if (!peer.remoteVideoTrack) {
-              peer.remoteVideoTrack = new MediaStream([track]);
-            }
-            return;
+            break;
+          }
         }
+        console.warn(peer.videoRecvTransceiver, peer.screenRecvTransceiver);
       };
       peer.rtcPeerConnection.onicecandidate = ({ candidate }) => {
         if (candidate) {
@@ -621,7 +727,13 @@ export class P2pWebrtcService {
 
       peer.rtcPeerConnection.onconnectionstatechange = async (ev) => {
         if (peer.rtcPeerConnection.connectionState === 'connected') {
-          peer.connected = true;
+          peer.getStats();
+          // peer.connected = true;
+          // interval(1000)
+          //   .pipe(takeWhile(() => peer.connected))
+          //   .subscribe((val) => {
+          //     peer.getStats();
+          //   });
           // const stats = await peer.getStats();
           // console.warn('stats ', stats);
         } else {
@@ -664,6 +776,26 @@ export class P2pWebrtcService {
   resumeVideoTrack(): void {
     const audioTracks = this._localStream.getAudioTracks();
     audioTracks[0].enabled = true;
+  }
+  startScreenSharing(stream: MediaStream): void {
+    const videoTracks = stream.getVideoTracks();
+    if (videoTracks.length > 0) {
+      const videoTrack = videoTracks[0];
+      this.consumers.forEach((consumer) => {
+        consumer.screenSendTransceiver =
+          consumer.rtcPeerConnection.addTransceiver('video', {
+            direction: 'sendonly',
+            streams: [stream],
+          });
+        consumer.screenSendTransceiver.sender.replaceTrack(videoTrack);
+      });
+    }
+  }
+  stopScreenSharing(): void {
+    this.consumers.forEach((consumer) => {
+      consumer.screenSendTransceiver.sender.replaceTrack(null);
+      consumer.screenSendTransceiver.stop();
+    });
   }
 
   onDestroy(): void {

@@ -1,8 +1,6 @@
 import { Injectable } from '@angular/core';
 import { ApiGatewayService } from './api-connection/api-gateway.service';
-import { MediasoupService } from './wss.mediasoup';
-import { BehaviorSubject, ReplaySubject, Subscription } from 'rxjs';
-import { IMemberIdentifier, MemberType } from './types/defines';
+import { BehaviorSubject, Subscription } from 'rxjs';
 import Swal from 'sweetalert2';
 import { DeviceService } from '../core/helpers/device-manager.service';
 import { ApiRestService } from './api-connection/api-rest.service';
@@ -10,6 +8,8 @@ import {
   MeetingDto,
   MeetingMemberDto,
   MeetingServiceType,
+  MemberType,
+  TChatDto,
 } from '../meetings/types/defines';
 import * as hark from 'hark';
 import { NGXLogger } from 'ngx-logger';
@@ -18,16 +18,31 @@ import { SignalingService } from '../meetings/services/wss/signaling.service';
 import { SignalingSocket } from './types/custom-sockets';
 import { environment } from '../../environments/environment';
 import { Router } from '@angular/router';
-import { take } from 'rxjs/operators';
+import { MeetingDataService } from '../meetings/services/meeting-data.service';
+import { SfuWebrtcService } from './mediasoup.service';
 
 @Injectable()
 export class MeetingService {
+  get isMediasoupReady(): boolean {
+    return this._isMediasoupReady;
+  }
+
+  set isMediasoupReady(value: boolean) {
+    this._isMediasoupReady = value;
+  }
+  get isBroadcasting(): boolean {
+    return this._isBroadcasting;
+  }
+
+  set isBroadcasting(value: boolean) {
+    this._isBroadcasting = value;
+  }
   get isMeetingCreator(): boolean {
-    return this._isMeetingCreator;
+    return this.meetingDataService.isMeetingCreator;
   }
 
   set isMeetingCreator(value: boolean) {
-    this._isMeetingCreator = value;
+    this.meetingDataService.isMeetingCreator = value;
   }
   get activeSpeaker(): number {
     return this._activeSpeaker;
@@ -37,104 +52,167 @@ export class MeetingService {
     this._activeSpeaker = value;
   }
   get localStream(): MediaStream | undefined {
-    return this._localStream;
+    return this.meetingDataService.localStream;
+  }
+  set localStream(value) {
+    this.meetingDataService.localStream = value;
   }
 
   get meetingId(): string {
-    return this._meetingId;
+    return this.meetingDataService.meetingId;
   }
   set meetingId(value: string) {
-    this._meetingId = value;
+    this.meetingDataService.meetingId = value;
   }
-  private _meetingId!: string;
-  private readonly PC_PROPRIETARY_CONSTRAINTS = {
-    optional: [{ googDscp: true }],
-  };
+
+  get meetingMembers(): Map<string, MeetingMemberDto> {
+    return this.meetingDataService.meetingMembers;
+  }
+  set meetingMembers(value: Map<string, MeetingMemberDto>) {
+    this.meetingDataService.meetingMembers = value;
+  }
+  get meetingViewers(): Map<string, MeetingMemberDto> {
+    return this.meetingDataService.meetingViewers;
+  }
+  set meetingViewers(value: Map<string, MeetingMemberDto>) {
+    this.meetingDataService.meetingViewers = value;
+  }
+
+  get meetingMember(): MeetingMemberDto {
+    return this.meetingDataService.meetingMember;
+  }
+  set meetingMember(value: MeetingMemberDto) {
+    this.meetingDataService.meetingMember = value;
+  }
+  get meetingServiceType(): MeetingServiceType {
+    return this.meetingDataService.meetingServiceType;
+  }
+  set meetingServiceType(value: MeetingServiceType) {
+    this.meetingDataService.meetingServiceType = value;
+  }
+  get isMeetingReady() {
+    return this._isMeetingReady;
+  }
+  get audioTrack(): MediaStreamTrack | undefined {
+    return this._audioTrack;
+  }
+  get videoTrack(): MediaStreamTrack | undefined {
+    return this._videoTrack;
+  }
+
+  get messages(): TChatDto[] {
+    return this.meetingDataService.messages;
+  }
+
   connectionMediasoupReady$: BehaviorSubject<boolean> =
     new BehaviorSubject<boolean>(false);
   connectionApiGatewayReady$: BehaviorSubject<boolean> =
     new BehaviorSubject<boolean>(false);
   connectionSignalingGatewayReady$: BehaviorSubject<boolean> =
     new BehaviorSubject<boolean>(false);
-  isBroadcasting$: ReplaySubject<boolean> = new ReplaySubject<boolean>();
-  audioEnabled$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
-  videoEnabled$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
+  private _isBroadcasting = false;
   private _isMeetingValid$: BehaviorSubject<boolean> =
     new BehaviorSubject<boolean>(true);
-  public remotePeers$: BehaviorSubject<Map<string, IMemberIdentifier>> =
-    new BehaviorSubject<Map<string, IMemberIdentifier>>(
-      new Map<string, IMemberIdentifier>()
-    );
-  private _isMeetingCreator!: boolean;
-  private _localStream: MediaStream | undefined;
-  private _meetingMember!: MeetingMemberDto;
-  private _meetingServiceType!: MeetingServiceType;
-  private mediasoupService!: MediasoupService;
+
   private meshService!: P2pWebrtcService;
-  private _meetingMembers: Map<string, MeetingMemberDto> = new Map<
-    string,
-    MeetingMemberDto
-  >();
-  get meetingMembers(): Map<string, MeetingMemberDto> {
-    return this._meetingMembers;
-  }
-
-  set meetingMembers(value: Map<string, MeetingMemberDto>) {
-    this._meetingMembers = value;
-  }
-
   private _audioTrack: MediaStreamTrack | undefined;
   private _videoTrack: MediaStreamTrack | undefined;
-  get meetingMember(): MeetingMemberDto {
-    return this._meetingMember;
-  }
-  set meetingMember(value: MeetingMemberDto) {
-    this._meetingMember = value;
-  }
-  get meetingServiceType(): MeetingServiceType {
-    return this._meetingServiceType;
-  }
-  set meetingServiceType(value: MeetingServiceType) {
-    this._meetingServiceType = value;
-  }
   private _isMeetingReady = false;
+  private _isMediasoupReady = false;
   private _activeSpeaker = 0;
-  get isMeetingReady() {
-    return this._isMeetingReady;
-  }
   private subscriptions: Subscription[] = [];
   constructor(
     private router: Router,
     private logger: NGXLogger,
     private apiGatewayService: ApiGatewayService,
     private apiRestService: ApiRestService,
-    private deviceManagerService: DeviceService
+    private deviceManagerService: DeviceService,
+    private meetingDataService: MeetingDataService,
+    private mediasoupService: SfuWebrtcService
   ) {
     this.apiGatewayService.onConnectionReady().subscribe(async () => {
-      console.log('CONNECTION API GATEWAY READY');
       this.connectionApiGatewayReady$.next(true);
-      // this.mediasoupService.onConnectionReady().subscribe(async (data) => {
-      //   console.log('CONNECTION MEDIASOUP READY');
-      // });
+      const onStartScreenSharing$ = this.apiGatewayService
+        .onStartScreenSharing()
+        .subscribe((data) => {
+          console.log(data, 'startscreensharing');
+          const member = this.meetingMembers.get(data.meetingMemberId);
+          if (member) {
+            member.isScreenSharing = data.isScreenSharing;
+          }
+        });
+      const onEndScreenSharing$ = this.apiGatewayService
+        .onStopScreenSharing()
+        .subscribe((data) => {
+          console.log(data, 'stopscreensharing');
+          const member = this.meetingMembers.get(data.meetingMemberId);
+          if (member) {
+            member.isScreenSharing = data.isScreenSharing;
+          }
+        });
+
       const onStartBroadcasting$ = this.apiGatewayService
         .onStartMeetingBroadcast()
         .subscribe((data) => {
-          console.log(data);
-          this.isBroadcasting$.next(true);
+          console.log('startBroadcastingSession', data);
+          if (!this.isMediasoupReady) {
+            this.initSFUInstance(true);
+          }
+          this.isBroadcasting = true;
         });
       const onEndBroadcasting$ = this.apiGatewayService
         .onEndMeetingBroadcast()
         .subscribe((data) => {
+          console.log('endBroadcastingSession', data);
           console.log(data);
-          this.isBroadcasting$.next(false);
+          if (this.meetingServiceType === 'MESH' && this.isMediasoupReady) {
+            this.mediasoupService.leaveSfuSession();
+          }
+          this.isBroadcasting = false;
         });
-      const onJoinMeeting$ = this.apiGatewayService
+      const onMemberJoin$ = this.apiGatewayService
         .onJoinMeeting()
         .subscribe((data) => {
           console.log('MEMBER JOINED', data);
-          this._meetingMembers.set(data._id, data);
+          if (data.member === MemberType.CONSUMER) {
+            this.meetingViewers.set(data._id, data);
+          } else {
+            this.meetingMembers.set(data._id, data);
+          }
         });
-
+      const onMeetingMemberDisconnected$ = this.apiGatewayService
+        .onMeetingMemberDisconnected()
+        .subscribe((data) => {
+          let consumer;
+          this.meetingMembers.delete(data.sender);
+          this.meetingViewers.delete(data.sender);
+          switch (this.meetingServiceType) {
+            case MeetingServiceType.SFU:
+              consumer = this.mediasoupService.consumers.get(data.sender);
+              if (consumer) {
+                if (consumer.consumerVideo) {
+                  consumer.consumerVideo.close();
+                  consumer.consumerVideoStream = undefined;
+                }
+                if (consumer.consumerAudio) {
+                  consumer.consumerAudio.close();
+                  consumer.consumerAudioStream = undefined;
+                }
+                if (consumer.consumerScreen) {
+                  consumer.consumerScreen.close();
+                  consumer.consumerScreenStream = undefined;
+                }
+              }
+              break;
+            case MeetingServiceType.MESH:
+              consumer = this.meshService.consumers.get(data.sender);
+              if (consumer) {
+                consumer.rtcPeerConnection.close();
+                this.meshService.consumers.delete(data.sender);
+              }
+              break;
+          }
+        });
       const onToggleAudio$ = this.apiGatewayService
         .onToggleAudio()
         .subscribe((data) => {
@@ -160,23 +238,6 @@ export class MeetingService {
           const meetingMember = this.meetingMembers.get(data.meetingMemberId);
           if (meetingMember) {
             meetingMember.produceVideoEnabled = data.produceVideoEnabled;
-          }
-        });
-      const onMeetingMemberDisconnected$ = this.apiGatewayService
-        .onMeetingMemberDisconnected()
-        .subscribe((data) => {
-          switch (this.meetingServiceType) {
-            case MeetingServiceType.SFU:
-              break;
-            case MeetingServiceType.MESH: {
-              const consumer = this.meshService.consumers.get(data.sender);
-              if (consumer) {
-                consumer.rtcPeerConnection.close();
-                this.meshService.consumers.delete(data.sender);
-              }
-              this.meetingMembers.delete(data.sender);
-              break;
-            }
           }
         });
 
@@ -240,28 +301,56 @@ export class MeetingService {
           }
         });
 
+      const onMessageReceived$ = this.apiGatewayService
+        .onMessage()
+        .subscribe((data) => {
+          this.messages.push(data);
+        });
+
+      const onToggleScreenSharePermission$ = this.apiGatewayService
+        .onToggleScreenSharePermission()
+        .subscribe((data) => {
+          if (data.meetingMemberId === this.meetingMember._id) {
+            this.meetingMember.canScreenShare = data.canScreenShare;
+          } else {
+            const member = this.meetingMembers.get(data.meetingMemberId);
+            if (member) {
+              member.canScreenShare = data.canScreenShare;
+            }
+          }
+        });
+
       this.subscriptions.push(
+        onStartScreenSharing$,
+        onEndScreenSharing$,
         onStartBroadcasting$,
         onEndBroadcasting$,
-        onJoinMeeting$,
+        onMemberJoin$,
         onToggleAudio$,
         onToggleVideo$,
-        onMeetingMemberDisconnected$
+        onToggleGlobalAudio$,
+        onToggleGlobalVideo$,
+        onMeetingMemberDisconnected$,
+        onMessageReceived$,
+        onToggleScreenSharePermission$
       );
     });
   }
 
-  //<editor-fold desc="Meeting session handlers">
+  /**
+   * Send request to validate that the meeting exists and its active
+   * @param meetingId type string, Id of meeting to validate
+   * @private
+   */
   public async validateMeeting(meetingId: string): Promise<any> {
     return this.apiRestService.getMeeting(meetingId).toPromise();
   }
-  public createMeeting(userId: string): Promise<any> {
-    return this.apiRestService
-      .addMeeting({
-        meetingCreatorId: userId,
-      })
-      .toPromise();
-  }
+
+  /**
+   * Send request to join the meeting
+   * @param meetingMember type MeetingMemberDto
+   * @private
+   */
   public async addMeetingMember(meetingMember: MeetingMemberDto): Promise<any> {
     try {
       return await this.apiGatewayService.joinMeeting(meetingMember);
@@ -269,6 +358,13 @@ export class MeetingService {
       console.log(e);
     }
   }
+  /**
+   * Inits meeting session
+   * @param user type object
+   * @param memberType tyoe MemberType
+   * @param meetingServiceType type MeetingServiceType
+   * @param meetingId type string
+   */
   async initMeeting(
     user: {
       isGuest: boolean;
@@ -284,7 +380,7 @@ export class MeetingService {
       try {
         const result = await this.getLocalMediaDevices(memberType);
         if (result) {
-          this._meetingMember = {
+          this.meetingMember = {
             isGuest: user.isGuest,
             userId: user.sub ? user.sub : user.sessionId,
             sessionUserId: user.sessionId,
@@ -299,9 +395,13 @@ export class MeetingService {
           };
           const meeting: MeetingDto = await this.validateMeeting(meetingId);
           if (meeting._id) {
-            this.meetingServiceType = meetingServiceType;
+            if (!meeting.isBroadcasting && memberType === MemberType.CONSUMER) {
+              return;
+            }
             this.meetingId = meeting._id;
-            this._meetingMember.meetingId = meeting._id;
+            this.meetingServiceType = meetingServiceType;
+            this.meetingMember.meetingId = meeting._id;
+            this.isBroadcasting = meeting.isBroadcasting;
             let nickname = localStorage.getItem(environment.lsGuessName);
             if (!nickname) {
               await Swal.fire({
@@ -335,26 +435,49 @@ export class MeetingService {
                   console.log(e);
                 });
             }
-            this._meetingMember.nickname = nickname
+            this.meetingMember.nickname = nickname
               ? nickname
-              : this._meetingMember.userId;
+              : this.meetingMember.userId;
             this.addMeetingMember(this.meetingMember)
-              .then((resAddMeetingMember) => {
+              .then(async (resAddMeetingMember) => {
                 if (resAddMeetingMember.success) {
-                  console.log('currentMember', resAddMeetingMember);
-                  this._isMeetingCreator =
+                  if (memberType === MemberType.CONSUMER) {
+                    await Swal.fire({
+                      title: 'Welcome',
+                      showCancelButton: false,
+                      confirmButtonText: 'Ok',
+                    })
+                      .then((result) => {
+                        console.log(result);
+                      })
+                      .catch((e) => {
+                        console.log(e);
+                      });
+                  }
+                  this.isMeetingCreator =
                     resAddMeetingMember.payload.isMeetingCreator;
                   this.meetingMember._id = resAddMeetingMember.payload._id;
                   this.meetingMember.produceAudioAllowed =
                     resAddMeetingMember.payload.produceAudioAllowed;
                   this.meetingMember.produceVideoAllowed =
                     resAddMeetingMember.payload.produceVideoAllowed;
+                  switch (this.meetingServiceType) {
+                    case MeetingServiceType.MESH:
+                      this.initMeshInstance();
+                      break;
+                    case MeetingServiceType.SFU:
+                      await this.initSFUInstance();
+                      break;
+                    case MeetingServiceType.BOTH:
+                      break;
+                  }
+                  this._isMeetingReady = true;
                   this.apiRestService
                     .getMeetingMembers(meetingId)
-                    .pipe(take(1))
-                    .subscribe((resGetMeetingMembers) => {
-                      console.log('GET MEETING MEMBERS');
+                    .toPromise()
+                    .then((resGetMeetingMembers) => {
                       const activeMembers = resGetMeetingMembers.activeMembers;
+                      console.warn('active meeting members', activeMembers);
                       activeMembers.forEach((member: any) => {
                         if (member._id !== this.meetingMember._id) {
                           this.meetingMembers.set(member._id, {
@@ -371,20 +494,41 @@ export class MeetingService {
                             isScreenSharing: member.isScreenSharing,
                             connectionType: member.connectionType,
                           });
+                          switch (this.meetingServiceType) {
+                            case MeetingServiceType.SFU:
+                              this.mediasoupService.setMeetingMemberAudioStream(
+                                member._id
+                              );
+                              this.mediasoupService.setMeetingMemberVideoStream(
+                                member._id
+                              );
+                              break;
+                            case MeetingServiceType.BOTH:
+                              break;
+                          }
                         }
                       });
+                      const activeViewers = resGetMeetingMembers.activeViewers;
+                      activeViewers.forEach((viewer: any) => {
+                        this.meetingViewers.set(viewer._id, {
+                          userId: viewer.userId,
+                          _id: viewer._id,
+                          nickname: viewer.nickname,
+                          meetingId: viewer._meetingId,
+                          memberType: viewer.memberType,
+                          produceAudioEnabled: viewer.produceAudioEnabled,
+                          produceVideoEnabled: viewer.produceVideoEnabled,
+                          produceAudioAllowed: viewer.produceAudioAllowed,
+                          produceVideoAllowed: viewer.produceVideoAllowed,
+                          sessionUserId: viewer.sessionUserId,
+                          isScreenSharing: viewer.isScreenSharing,
+                          connectionType: viewer.connectionType,
+                        });
+                      });
+                    })
+                    .catch((e) => {
+                      console.error(e.message, e.stack);
                     });
-                  switch (this._meetingServiceType) {
-                    case MeetingServiceType.MESH:
-                      this.initMeshInstance();
-                      this._isMeetingReady = true;
-                      console.log('meeting is ready');
-                      break;
-                    case MeetingServiceType.SFU:
-                      break;
-                    case MeetingServiceType.BOTH:
-                      break;
-                  }
                 } else {
                   const msg = resAddMeetingMember.payload;
                   //TODO redirect to error page
@@ -403,7 +547,20 @@ export class MeetingService {
       }
     }
   }
-
+  /**
+   * Send request to create a meeting
+   * @param userId type string, user id provided by token
+   */
+  public createMeeting(userId: string): Promise<any> {
+    return this.apiRestService
+      .addMeeting({
+        meetingCreatorId: userId,
+      })
+      .toPromise();
+  }
+  /**
+   * Pause local video track transmission
+   */
   videoPause(): boolean {
     if (this._videoTrack) {
       if (this._videoTrack.enabled) {
@@ -414,6 +571,7 @@ export class MeetingService {
             produceVideoEnabled: false,
           });
           this._videoTrack.enabled = false;
+          this.meetingMember.produceVideoEnabled = false;
           switch (this.meetingServiceType) {
             case MeetingServiceType.MESH: {
               const consumers = this.meshService.consumers;
@@ -424,10 +582,15 @@ export class MeetingService {
                   }
                 });
               }
-              this.meetingMember.produceVideoEnabled = false;
+              if (this.isBroadcasting) {
+                this.mediasoupService.producerVideoPause(
+                  this.meetingMember._id!
+                );
+              }
               break;
             }
             case MeetingServiceType.SFU:
+              this.mediasoupService.producerVideoPause(this.meetingMember._id!);
               break;
           }
         }
@@ -435,11 +598,16 @@ export class MeetingService {
     }
     return false;
   }
+  /**
+   * Resume local video track transmission
+   */
   async videoResume(): Promise<boolean> {
+    console.log(this._videoTrack);
     if (this._videoTrack) {
       if (!this._videoTrack.enabled) {
         if (!this.meetingMember.produceVideoEnabled) {
           this._videoTrack.enabled = true;
+          this.meetingMember.produceVideoEnabled = true;
           switch (this.meetingServiceType) {
             case MeetingServiceType.MESH: {
               const consumers = this.meshService.consumers;
@@ -449,11 +617,18 @@ export class MeetingService {
                     consumer.videoSendTransceiver.direction = 'sendonly';
                   }
                 });
+                if (this.isBroadcasting) {
+                  this.mediasoupService.producerVideoResume(
+                    this.meetingMember._id!
+                  );
+                }
               }
-              this.meetingMember.produceVideoEnabled = true;
               break;
             }
             case MeetingServiceType.SFU:
+              this.mediasoupService.producerVideoResume(
+                this.meetingMember._id!
+              );
               break;
           }
           const result = await this.apiGatewayService.toggleVideo({
@@ -468,6 +643,9 @@ export class MeetingService {
     }
     return false;
   }
+  /**
+   * Pause local audio track transmission
+   */
   audioPause(): boolean {
     if (this._audioTrack) {
       if (this.meetingMember.produceAudioEnabled) {
@@ -487,16 +665,23 @@ export class MeetingService {
                 }
               });
             }
+            if (this.isBroadcasting) {
+              this.mediasoupService.producerAudioPause(this.meetingMember._id!);
+            }
             this.meetingMember.produceAudioEnabled = false;
             break;
           }
           case MeetingServiceType.SFU:
+            this.mediasoupService.producerAudioPause(this.meetingMember._id!);
             break;
         }
       }
     }
     return false;
   }
+  /**
+   * Pauses local audio track transmission
+   */
   audioResume(): boolean {
     if (this._audioTrack) {
       if (!this.meetingMember.produceAudioEnabled) {
@@ -511,11 +696,16 @@ export class MeetingService {
                 }
               });
             }
+            if (this.isBroadcasting) {
+              this.mediasoupService.producerAudioResume(
+                this.meetingMember._id!
+              );
+            }
             this.meetingMember.produceAudioEnabled = true;
-
             break;
           }
           case MeetingServiceType.SFU:
+            this.mediasoupService.producerAudioResume(this.meetingMember._id!);
             break;
         }
         this.apiGatewayService.toggleAudio({
@@ -528,6 +718,10 @@ export class MeetingService {
     }
     return false;
   }
+  /**
+   * Enable or disable audio stream reception from the selected user on the rest of meeting members
+   * @param key type string, id of the remote meeting member to whom the action will be performed
+   */
   async globalAudioToggle(key: string): Promise<void> {
     const meetingMember = this.meetingMembers.get(key);
     if (meetingMember) {
@@ -546,9 +740,12 @@ export class MeetingService {
       console.log('toggleglobalaudio', result);
     }
   }
+  /**
+   * Enable or disable video stream reception from the selected user on the rest of meeting members
+   * @param key type string, id of the remote meeting member to whom the action will be performed
+   */
   async globalVideoToggle(key: string): Promise<void> {
     const meetingMember = this.meetingMembers.get(key);
-    console.log('validate member', meetingMember, key);
     if (meetingMember) {
       switch (meetingMember.connectionType) {
         case MeetingServiceType.MESH:
@@ -557,67 +754,207 @@ export class MeetingService {
           this.mediasoupService.globalToggleMedia(key, 'video');
           break;
       }
-      console.log('send beacon', this.meetingId);
       const result = await this.apiGatewayService.toggleGlobalVideo({
         meetingId: this.meetingId,
         meetingMemberId: key,
         produceVideoAllowed: !meetingMember.produceVideoAllowed,
       });
-      console.log('toggleglobalvideo', result);
     }
   }
-  //</editor-fold>
 
-  //<editor-fold desc="Mesh instance handlers">
+  /**
+   * Enable or disable screen share capability from the selected user to the rest of the meeting members
+   * @param key type string, id of the remote meeting member to whom the action will be performed
+   */
+  async screenSharePermissionToggle(key: string) {
+    const meetingMember = this.meetingMembers.get(key);
+    if (meetingMember) {
+      const result = await this.apiGatewayService.toggleScreenSharePermission({
+        meetingId: this.meetingId,
+        meetingMemberId: key,
+        canScreenShare: !meetingMember.canScreenShare,
+      });
+    }
+  }
+  /**
+   * Inits MeshService instance
+   */
   initMeshInstance() {
     this.meshService = new P2pWebrtcService(
-      new SignalingService(new SignalingSocket())
+      new SignalingService(new SignalingSocket()),
+      this.meetingDataService
     );
-    this.meshService.meetingMemberId = this._meetingMember._id!;
-    console.warn('Add reference to localstream', this._localStream);
-    this.meshService.localStream = this._localStream
-      ? this._localStream
+    this.meshService.localMeetingMember = this.meetingMember;
+    this.meshService.meetingMemberId = this.meetingMember._id!;
+    console.warn('Add reference to localstream', this.localStream);
+    this.meshService.localStream = this.localStream
+      ? this.localStream
       : new MediaStream();
     this.meshService.onConnectionReady().subscribe((isReady) => {
       if (isReady) {
-        this.meshService.joinMeeting(this._meetingMember);
+        this._isMeetingReady = isReady;
+        this.meshService.joinMeeting(this.meetingMember);
       }
     });
   }
-  //</editor-fold>
-
-  //<editor-fold desc="Mediasoup sfu instance handlers">
-  initSFUInstance() {
-    this.mediasoupService = new MediasoupService(this.logger);
+  /**
+   * Inits SFU instance connection to its wss service
+   */
+  initSFUInstance(skipConsume = false) {
+    this.mediasoupService.initWssService();
+    const onMediasoupServiceConnectionReady$ = this.mediasoupService
+      .onConnectionReady()
+      .subscribe(async (data) => {
+        this.isMediasoupReady = true;
+        await this.mediasoupService
+          .joinRoom(this.meetingMember, skipConsume)
+          .then(async () => {
+            console.warn('mediasoup ready');
+            this.mediasoupService.initMediaProduction();
+          });
+      });
+    this.subscriptions.push(onMediasoupServiceConnectionReady$);
   }
-  //</editor-fold>
 
-  private async handleErrorPage() {
-    await this.mediasoupService.close();
+  /**
+   * Starts screen share
+   */
+  public async startScreenShare(): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      if (this.meetingMember.meetingId && this.meetingMember._id) {
+        const { meetingId, _id } = this.meetingMember;
+        this.deviceManagerService
+          .getDisplayMedia()
+          .then(async (stream) => {
+            switch (this.meetingServiceType) {
+              case MeetingServiceType.MESH:
+                this.meshService.startScreenSharing(stream);
+                break;
+              case MeetingServiceType.SFU:
+                try {
+                  await this.mediasoupService.startScreenShare(stream);
+                } catch (e) {
+                  console.error(e.message, 'SFU ERROR SHARE CONTENT');
+                  return;
+                }
+                break;
+              case MeetingServiceType.BOTH:
+                break;
+            }
+            this.apiGatewayService.startScreenSharing({
+              meetingId: meetingId,
+              meetingMemberId: _id,
+            });
+            this.meetingMember.isScreenSharing = true;
+            stream.getVideoTracks()[0].addEventListener('ended', async () => {
+              this.apiGatewayService.stopScreenSharing({
+                meetingId: meetingId,
+                meetingMemberId: _id,
+              });
+              this.meetingMember.isScreenSharing = false;
+            });
+            resolve(true);
+          })
+          .catch((e) => {
+            this.handleDisplayMediaError(e);
+            resolve(false);
+          });
+      } else {
+        resolve(false);
+      }
+    });
   }
 
-  //<editor-fold desc="Broadcasting controls(SFU)">
-  public async startBroadcastingSession(meetingMember: MeetingMemberDto) {
-    await this.apiRestService
+  /**
+   * Displey media error handler
+   * @param e
+   */
+  private handleDisplayMediaError = (e: any) => {
+    console.log(e.message, e.name);
+    switch (e.name) {
+      case 'NotAllowedError':
+        break;
+      case 'PermissionDeniedError':
+        break;
+      case 'NotFoundError':
+        Swal.fire({
+          icon: 'error',
+          title: 'NOT FOUND ERROR',
+          text: 'No sources of screen video are available for capture',
+          allowOutsideClick: true,
+          confirmButtonText: 'CERRAR',
+        })
+          .then((result) => {
+            return;
+          })
+          .catch((error) => {
+            console.error(error, 'Swal Exception ' + e.name);
+          });
+        break;
+      case 'NotReadableError':
+        Swal.fire({
+          icon: 'error',
+          title: 'NOT READABLE ERROR',
+          text: 'A hardware or operating system level error or lockout occurred, preventing the sharing of the selected source.',
+          allowOutsideClick: true,
+          confirmButtonText: 'CERRAR',
+        })
+          .then((result) => {
+            return;
+          })
+          .catch((error) => {
+            console.error(error, 'Swal Exception ' + e.name);
+          });
+        break;
+      case 'TypeError':
+        console.info(
+          'The list of constraints specified is empty, or has all constraints set to false, or you tried to call getUserMedia() in an insecure context.',
+          e.name
+        );
+        break;
+      case 'OverconstrainedError':
+      default:
+        console.log(e.message, e.name);
+        break;
+    }
+  };
+
+  /**
+   * Starts broadcasting session using SFU instance
+   * @param meetingMember
+   */
+  public async startBroadcastingSession() {
+    return this.apiRestService
       .startBroadcastingSession(
-        meetingMember.meetingId!,
-        meetingMember.userId,
-        meetingMember.sessionUserId
+        this.meetingMember.meetingId!,
+        this.meetingMember.userId,
+        this.meetingMember.sessionUserId
       )
-      .toPromise();
+      .toPromise()
+      .then(() => {
+        this.isBroadcasting = true;
+      });
   }
-  public async endBroadcastingSession(meetingMember: MeetingMemberDto) {
+  /**
+   * Ends broadcasting session
+   * @param meetingMember
+   */
+  public async endBroadcastingSession() {
     return this.apiRestService
       .endBroadcastingSession(
-        meetingMember.meetingId!,
-        meetingMember.userId,
-        meetingMember.sessionUserId
+        this.meetingMember.meetingId!,
+        this.meetingMember.userId,
+        this.meetingMember.sessionUserId
       )
-      .toPromise();
+      .toPromise()
+      .then(() => {
+        this.isBroadcasting = false;
+      });
   }
-  //</editor-fold>
-
-  //<editor-fold desc="getUserMedia handler">
+  /**
+   * Gets local stream media using getUserMedia API
+   * @param memberType
+   */
   async getLocalMediaDevices(memberType: MemberType): Promise<boolean> {
     // eslint-disable-next-line no-async-promise-executor
     return new Promise(async (resolve, reject) => {
@@ -633,10 +970,15 @@ export class MeetingService {
       }
     });
   }
+  /**
+   * getUserMedia handler, sets local stream audio and video tracks and add speech events to follow changes on audio track volume using hark library
+   * @param stream type MediaStream
+   * @private
+   */
   private handleGetUserMedia(stream: MediaStream) {
-    this._localStream = stream;
-    const videoTracks = this._localStream.getVideoTracks();
-    const audioTracks = this._localStream.getAudioTracks();
+    this.localStream = stream;
+    const videoTracks = this.localStream.getVideoTracks();
+    const audioTracks = this.localStream.getAudioTracks();
     if (videoTracks) {
       this._videoTrack = videoTracks[0];
       if (this._videoTrack) this._videoTrack.enabled = false;
@@ -659,19 +1001,16 @@ export class MeetingService {
         }
       });
     }
-    console.warn('disable tracks');
-    this._localStream.getTracks().forEach((track: MediaStreamTrack) => {
+    this.localStream.getTracks().forEach((track: MediaStreamTrack) => {
       track.enabled = false;
     });
-    console.warn('videotrack', this.videoTrack?.enabled);
-    console.warn('audiotrack', this.audioTrack?.enabled);
-
     return true;
   }
-
+  /**
+   * getUserMedia error handler
+   * @param e
+   */
   private handleMediaDevicesError = (e: any) => {
-    console.warn('HANDLING GETUSERMEDIA ERROR');
-    console.log(e.message, e.name);
     switch (e.name) {
       case 'NotAllowedError':
       case 'PermissionDeniedError':
@@ -724,22 +1063,15 @@ export class MeetingService {
     return false;
   };
 
-  get audioTrack(): MediaStreamTrack | undefined {
-    return this._audioTrack;
-  }
-  get videoTrack(): MediaStreamTrack | undefined {
-    return this._videoTrack;
-  }
-
-  getConsumers() {
-    return this.meshService.consumers;
-  }
-
+  /**
+   * Gets audio MediaStream object from the meeting member
+   * @param key type string,  meeting member id
+   */
   getMeetingMemberAudio(key: string): MediaStream | undefined {
-    const member = this._meetingMembers.get(key);
+    const member = this.meetingMembers.get(key);
     if (member) {
       let consumer;
-      switch (member.connectionType) {
+      switch (this.meetingServiceType) {
         case MeetingServiceType.MESH:
           consumer = this.meshService.consumers.get(key);
           if (consumer) {
@@ -749,29 +1081,90 @@ export class MeetingService {
         case MeetingServiceType.SFU:
           consumer = this.mediasoupService.consumers.get(key);
           if (consumer) {
-            return this.mediasoupService.consumersAudioStream.get(key);
+            return consumer.consumerAudioStream;
+          }
+          break;
+        case MeetingServiceType.BOTH:
+          switch (member.connectionType) {
+            case MeetingServiceType.MESH:
+              consumer = this.meshService.consumers.get(key);
+              if (consumer) {
+                return consumer.remoteAudioTrack;
+              }
+              break;
+            case MeetingServiceType.SFU:
+              consumer = this.mediasoupService.consumers.get(key);
+              if (consumer) {
+                return consumer.consumerAudioStream;
+              }
+              break;
           }
           break;
       }
     }
     return;
   }
-
+  /**
+   * Gets video MediaStream object from the meeting member
+   * @param key type string,  meeting member id
+   */
   getMeetingMemberVideo(key: string): MediaStream | undefined {
-    const member = this._meetingMembers.get(key);
+    const member = this.meetingMembers.get(key);
     if (member) {
       let consumer;
-      switch (member.connectionType) {
+      this.getConsumers();
+      switch (this.meetingServiceType) {
+        case MeetingServiceType.SFU:
+          consumer = this.mediasoupService.consumers.get(key);
+          if (consumer) {
+            return consumer.consumerVideoStream;
+          }
+          break;
         case MeetingServiceType.MESH:
           consumer = this.meshService.consumers.get(key);
           if (consumer) {
             return consumer.remoteVideoTrack;
           }
           break;
+        case MeetingServiceType.BOTH:
+          switch (member.connectionType) {
+            case MeetingServiceType.MESH:
+              consumer = this.meshService.consumers.get(key);
+              if (consumer) {
+                return consumer.remoteVideoTrack;
+              }
+              break;
+            case MeetingServiceType.SFU:
+              consumer = this.mediasoupService.consumers.get(key);
+              if (consumer) {
+                return consumer.consumerVideoStream;
+              }
+              return;
+          }
+          break;
+      }
+    }
+    return;
+  }
+  /**
+   * Gets screen video MediaStream object from the meeting member
+   * @param key type string,  meeting member id
+   */
+  getMeetingMemberScreenVideo(key: string): MediaStream | undefined {
+    const member = this.meetingMembers.get(key);
+    if (member) {
+      let consumer;
+      switch (member.connectionType) {
+        case MeetingServiceType.MESH:
+          consumer = this.meshService.consumers.get(key);
+          if (consumer) {
+            return consumer.screenStream;
+          }
+          break;
         case MeetingServiceType.SFU:
           consumer = this.mediasoupService.consumers.get(key);
           if (consumer) {
-            return this.mediasoupService.consumersVideoStream.get(key);
+            return consumer.consumerScreenStream;
           }
           break;
       }
@@ -779,12 +1172,78 @@ export class MeetingService {
     return;
   }
 
-  //</editor-fold>
+  getSessionStats() {
+    switch (this.meetingMember.connectionType) {
+      case MeetingServiceType.SFU:
+        break;
+      case MeetingServiceType.MESH:
+        this.meetingMembers.forEach(async (member) => {
+          switch (member.connectionType) {
+            case MeetingServiceType.MESH: {
+              const consumer = this.meshService.consumers.get(member._id!);
+              if (consumer) {
+                const prevStats = { ...consumer.getStatsResult };
+                console.log(Date.now());
+                await consumer.getStats().then(() => {
+                  console.log(Date.now());
+                  console.warn('prevstats', prevStats);
+                  console.warn('currentstats', consumer.getStatsResult);
+                });
+              }
+              break;
+            }
+          }
+        });
+        break;
+      case MeetingServiceType.BOTH:
+        break;
+    }
+  }
 
   onDestroy(): void {
+    this.localStream?.getTracks().forEach((track) => {
+      track.stop();
+    });
     if (this.meshService) this.meshService.onDestroy();
+    this.mediasoupService.onDestroy();
     this.subscriptions.forEach((sub) => {
       sub.unsubscribe();
     });
+    this.subscriptions = [];
+  }
+  closeTransport(): void {
+    if (this.mediasoupService && this.isMediasoupReady) {
+      console.log(this.localStream?.getVideoTracks()[0]);
+      this.mediasoupService.producerVideo?.pause();
+      console.log('localstream vt', this.localStream?.getVideoTracks()[0]);
+      this.mediasoupService.producerVideo?.close();
+      console.log('localstream vt', this.localStream?.getVideoTracks()[0]);
+      console.log('global scope vt', this.videoTrack);
+    }
+  }
+  getConsumers(): any {
+    switch (this.meetingServiceType) {
+      case MeetingServiceType.BOTH:
+        return [];
+        break;
+      case MeetingServiceType.SFU:
+        return this.mediasoupService.consumers;
+      case MeetingServiceType.MESH:
+        return this.meshService.consumers;
+    }
+  }
+
+  sendMessage(value: string): void {
+    const todayDate: Date = new Date();
+    const message = {
+      meetingMemberId: this.meetingMember._id!,
+      text: value,
+      timestamp: todayDate.toLocaleString(),
+      nickname: this.meetingMember.nickname
+        ? this.meetingMember.nickname
+        : this.meetingMember._id!,
+    };
+    this.messages.push(message);
+    this.apiGatewayService.sendMessage(message, this.meetingId);
   }
 }

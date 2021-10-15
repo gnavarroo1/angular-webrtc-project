@@ -171,53 +171,53 @@ export class TestComponent implements OnInit {
     // this.meetingService.localStream$.subscribe((value) => {
     //   this.localStream = value;
     // });
-    this.meetingService.isBroadcasting$.subscribe((value) => {
-      console.log(value);
-      this.isBroadcasting = value;
-      if (
-        !this.isBroadcasting &&
-        this.meetingMember.memberType === MemberType.CONSUMER
-      ) {
-        // let timerInterval: NodeJs.Timeout;
-        // Swal.fire({
-        //   title: `SESIÓN FINALIZADA`,
-        //   html: 'SERA REDIRIGIDO A LA PÁGINA PRINCIPAL EN <strong></strong> SEGUNDOS.<br/><br/>',
-        //   timer: 5000,
-        //   icon: 'warning',
-        //   showCancelButton: false,
-        //   confirmButtonColor: '#3085d6',
-        //   allowOutsideClick: false,
-        //   confirmButtonText: 'PÁGINA PRINCIPAL',
-        //   willOpen() {
-        //     Swal.showLoading();
-        //     timerInterval = setInterval(() => {
-        //       const timeLeft = Swal.getTimerLeft();
-        //       let timer = '0';
-        //       if (timeLeft) {
-        //         timer = (timeLeft / 1000).toFixed(0);
-        //       }
-        //       const container =
-        //         Swal.getHtmlContainer()?.querySelector('strong');
-        //       if (container) {
-        //         container.textContent = timer;
-        //       }
-        //     }, 100);
-        //   },
-        //   willClose: () => {
-        //     clearInterval(timerInterval);
-        //     this.leaveMeetingSession();
-        //   },
-        // })
-        //   .then((result) => {
-        //     if (result.value) {
-        //       this.leaveMeetingSession();
-        //     }
-        //   })
-        //   .catch((e) => {
-        //     console.log(e);
-        //   });
-      }
-    });
+    // this.meetingService.isBroadcasting$.subscribe((value) => {
+    //   console.log(value);
+    //   this.isBroadcasting = value;
+    //   if (
+    //     !this.isBroadcasting &&
+    //     this.meetingMember.memberType === MemberType.CONSUMER
+    //   ) {
+    //     // let timerInterval: NodeJs.Timeout;
+    //     // Swal.fire({
+    //     //   title: `SESIÓN FINALIZADA`,
+    //     //   html: 'SERA REDIRIGIDO A LA PÁGINA PRINCIPAL EN <strong></strong> SEGUNDOS.<br/><br/>',
+    //     //   timer: 5000,
+    //     //   icon: 'warning',
+    //     //   showCancelButton: false,
+    //     //   confirmButtonColor: '#3085d6',
+    //     //   allowOutsideClick: false,
+    //     //   confirmButtonText: 'PÁGINA PRINCIPAL',
+    //     //   willOpen() {
+    //     //     Swal.showLoading();
+    //     //     timerInterval = setInterval(() => {
+    //     //       const timeLeft = Swal.getTimerLeft();
+    //     //       let timer = '0';
+    //     //       if (timeLeft) {
+    //     //         timer = (timeLeft / 1000).toFixed(0);
+    //     //       }
+    //     //       const container =
+    //     //         Swal.getHtmlContainer()?.querySelector('strong');
+    //     //       if (container) {
+    //     //         container.textContent = timer;
+    //     //       }
+    //     //     }, 100);
+    //     //   },
+    //     //   willClose: () => {
+    //     //     clearInterval(timerInterval);
+    //     //     this.leaveMeetingSession();
+    //     //   },
+    //     // })
+    //     //   .then((result) => {
+    //     //     if (result.value) {
+    //     //       this.leaveMeetingSession();
+    //     //     }
+    //     //   })
+    //     //   .catch((e) => {
+    //     //     console.log(e);
+    //     //   });
+    //   }
+    // });
     // this.mediasoupService.onConnectionReady().subscribe(async (data) => {
     //   this.mediasoupService.session_id = this.meetingId;
     //   if (data) {
@@ -274,7 +274,7 @@ export class TestComponent implements OnInit {
       const consumers = this.meetingService.getConsumers();
       if (this.videoEnabled) {
         this.videoEnabled = this.meetingService.videoPause();
-        consumers.forEach((value) => {
+        consumers.forEach((value: any) => {
           value.videoSendTransceiver.direction = 'inactive';
         });
       } else {
@@ -283,7 +283,7 @@ export class TestComponent implements OnInit {
         //   this.meetingMember.sessionUserId
         // );
         this.meetingService.videoResume();
-        consumers.forEach((value) => {
+        consumers.forEach((value: any) => {
           value.videoSendTransceiver.direction = 'sendonly';
         });
       }
@@ -327,10 +327,10 @@ export class TestComponent implements OnInit {
   }
 
   async startBroadcastingSession() {
-    await this.meetingService.startBroadcastingSession(this.meetingMember);
+    await this.meetingService.startBroadcastingSession();
   }
   async endBroadcastingSession() {
-    await this.meetingService.endBroadcastingSession(this.meetingMember);
+    await this.meetingService.endBroadcastingSession();
   }
 
   getConsumers() {
@@ -347,7 +347,7 @@ export class TestComponent implements OnInit {
     if (member) {
       console.warn('PEER', peer);
       console.warn('RTCPEERCONNECTION', member.rtcPeerConnection);
-      console.warn('Remote Stream', member.remoteStream);
+      // console.warn('Remote Stream', member.remoteStream);
       console.warn(
         'TRANSCEIVERS => ',
         member.rtcPeerConnection.getTransceivers().length

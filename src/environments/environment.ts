@@ -5,6 +5,7 @@
 import * as uuid from 'uuid';
 
 export const environment = {
+  development: true,
   user_id: uuid.v4(),
   production: false,
   name: 'development',
@@ -32,9 +33,9 @@ export const environment = {
     },
   },
   mediasoupServer: {
-    wssUrl: 'wss://dev.pry2021153.tech:8099',
+    wssUrl: 'ws://127.0.0.1:8098/',
     api: {
-      url: 'https://dev.pry2021153.tech:8099/',
+      url: 'http://127.0.0.1:8099/',
       namespaces: {},
     },
   },
@@ -113,7 +114,7 @@ export const environment = {
     guessName: 'meeting.guessName',
   },
 
-  mediasoupWssUrl: 'wss://dev.pry2021153.tech:8099',
+  mediasoupWssUrl: 'ws://dev.pry2021153.tech:8099',
   mediaSoupApiUrl: 'https://dev.pry2021153.tech:8099/',
   signalingWssUrl: 'ws://127.0.0.1:8000',
   platformApiUrl: 'http://127.0.0.1:3000/api/',
