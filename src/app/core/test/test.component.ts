@@ -54,7 +54,9 @@ export class TestComponent implements OnInit {
         await this.mediasoupService.initCommunication();
       }
     });
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
     this.mediasoupService.onAudioEnabled().subscribe((data) => {});
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
     this.mediasoupService.onVideoEnabled().subscribe((data) => {});
     this.mediasoupService.getConsumers().subscribe((peers) => {
       this.peers = peers;

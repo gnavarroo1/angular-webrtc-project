@@ -21,8 +21,8 @@
   position: fixed;
   z-index: 100;
   overflow: hidden;
-  -webkit-box-shadow: 0 5px 12px 2px rgb(17 17 17 / 50%);
-  box-shadow: 0 5px 12px 2px rgb(17 17 17 / 50%);
+  -webkit-box-shadow: 0 5px 12px 2px rgb(17 17 17%);
+  box-shadow: 0 5px 12px 2px rgb(17 17 17%);
   -webkit-transition-property: border-color;
   -moz-transition-property: border-color;
   -o-transition-property: border-color;
@@ -194,8 +194,8 @@
   background-color: rgba(36,59,85,0.75);
   border-bottom-right-radius: 4px;
   border-bottom-left-radius: 4px;
-  -webkit-box-shadow: 0 3px 12px 2px rgb(17 17 17 / 40%);
-  box-shadow: 0 3px 12px 2px rgb(17 17 17 / 40%);
+  -webkit-box-shadow: 0 3px 12px 2px rgb(17 17 17);
+  box-shadow: 0 3px 12px 2px rgb(17 17 17);
 }
 
 #mediasoup-demo-app-container [data-component='Room'] > .room-link-wrapper > .room-link > a.link {
@@ -633,8 +633,8 @@
     /*width: 450px;*/
     margin: 6px;
     border: 1px solid rgba(255, 255, 255, 0.15);
-    -webkit-box-shadow: 0 5px 12px 2px rgb(17 17 17 / 50%);
-    box-shadow: 0 5px 12px 2px rgb(17 17 17 / 50%);
+    -webkit-box-shadow: 0 5px 12px 2px rgb(17 17 17);
+    box-shadow: 0 5px 12px 2px rgb(17 17 17);
     -webkit-transition-property: border-color;
     -moz-transition-property: border-color;
     -o-transition-property: border-color;
