@@ -69,4 +69,7 @@ export class TokenManagerService {
       msg: this.jwtHelper.decodeToken(token),
     };
   }
+  public signOut() {
+    localStorage.removeItem(TOKEN_KEY);
+  }
 }

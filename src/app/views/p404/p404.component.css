@@ -1,0 +1,142 @@
+.app,
+app-dashboard,
+app-root {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-header {
+  -ms-flex: 0 0 55px;
+  flex: 0 0 55px;
+}
+
+.app-footer {
+  -ms-flex: 0 0 50px;
+  flex: 0 0 50px;
+}
+
+.app-body {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-direction: row;
+  flex-direction: row;
+  -ms-flex-positive: 1;
+  flex-grow: 1;
+  overflow-x: hidden;
+}
+
+.app-body .main {
+  -ms-flex: 1;
+  flex: 1;
+  min-width: 0;
+}
+
+.app-body .sidebar {
+  -ms-flex: 0 0 200px;
+  flex: 0 0 200px;
+  -ms-flex-order: -1;
+  order: -1;
+}
+
+.app-body .aside-menu {
+  -ms-flex: 0 0 250px;
+  flex: 0 0 250px;
+}
+
+.flex-row {
+  -ms-flex-direction: row !important;
+  flex-direction: row !important;
+}
+.app-header .navbar-nav .dropdown-menu {
+  position: absolute;
+}
+
+.app-header .navbar-nav .dropdown-menu-right {
+  right: 0;
+  left: auto;
+}
+
+.app-header .navbar-nav .dropdown-menu-left {
+  right: auto;
+  left: 0;
+}
+
+.align-items-center {
+  -ms-flex-align: center !important;
+  align-items: center !important;
+}
+.container {
+  width: 100%;
+  padding-right: 15px;
+  padding-left: 15px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+@media (min-width: 576px) {
+  .container {
+    max-width: 540px;
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 720px;
+  }
+}
+
+@media (min-width: 992px) {
+  .container {
+    max-width: 960px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .container {
+    max-width: 1140px;
+  }
+}
+.justify-content-center {
+  -ms-flex-pack: center !important;
+  justify-content: center !important;
+}
+.clearfix::after {
+  display: block;
+  clear: both;
+  content: "";
+}
+*[dir="rtl"] .float-left {
+  float: right !important;
+}
+
+.display-3 {
+  font-size: 4.5rem;
+  font-weight: 300;
+  line-height: 1.2;
+  color: seashell;
+}
+.mr-4,
+.mx-4 {
+  margin-right: 1.5rem !important;
+}
+*[dir="rtl"] .mr-4,
+*[dir="rtl"] .mx-4 {
+  margin-right: 0 !important;
+  margin-left: 1.5rem !important;
+}
+.pt-3,
+.py-3 {
+  color: seashell;
+  padding-top: 1rem !important;
+}
+
+.text-muted {
+  color: #E4E6EA !important;
+}
+
+.text-white .text-muted {
+  color: rgba(255, 255, 255, 0.6) !important;
+}

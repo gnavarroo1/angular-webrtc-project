@@ -1,1 +1,18 @@
+<mat-toolbar class="app-header" color="primary">
+    <div><a class="positronx" href="">WebRTC Platform</a></div>
+    <span class="nav-tool-items">
+    <a (click)="goToLogin()" *ngIf="!isLoggedIn && !isLoginUrl" [class.mat-raised-button]="!isLoginUrl" mat-button
+       routerLinkActive="active">Log in</a>
+    <a (click)="goToRegister()" *ngIf="!isLoggedIn && !isRegisterUrl" [class.mat-raised-button]="!isRegisterUrl" mat-button
+       routerLinkActive="active">Register</a>
+    <a (click)="logout()" *ngIf="isLoggedIn" mat-button mat-raised-button routerLinkActive="active">Logout</a>
+  </span>
+
+</mat-toolbar>
+
 <router-outlet></router-outlet>
+
+
+
+
+

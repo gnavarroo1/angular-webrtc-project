@@ -1,17 +1,13 @@
-import { NgModule } from '@angular/core';
+import { CUSTOM_ELEMENTS_SCHEMA, NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
+import { AngularMaterialModule } from './angular-material.module';
 import { AppComponent } from './app.component';
 import { LoggerModule, NgxLoggerLevel } from 'ngx-logger';
 import { HttpClientModule } from '@angular/common/http';
-import { TestModule } from './core/test/test.module';
 import { SocketIoModule } from 'ngx-socket-io';
 import { environment } from '../environments/environment';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { MatGridListModule } from '@angular/material/grid-list';
-import { MatCardModule } from '@angular/material/card';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
+import { FlexLayoutModule } from '@angular/flex-layout';
 import { LayoutModule } from '@angular/cdk/layout';
 import { ClipboardModule } from 'ngx-clipboard';
 import { AppRoutingModule } from './app-routing.module';
@@ -20,19 +16,18 @@ import { JWT_OPTIONS, JwtModule } from '@auth0/angular-jwt';
 import { HomeComponent } from './home/home.component';
 import { WebrtcP2pComponent } from './webrtc-p2p/webrtc-p2p.component';
 import { WebrtcSfuComponent } from './webrtc-sfu/webrtc-sfu.component';
-import { WebrtcMutableComponent } from './webrtc-mutable/webrtc-mutable.component';
-import { MatSidenavModule } from '@angular/material/sidenav';
-import { MediasoupService } from './wss/wss.mediasoup';
-import { MeetingService } from './wss/meeting.service';
-import { MeetingApiService } from './meetings/services/api/meeting-api.service';
-import { P2pWebrtcService } from './wss/p2p-webrtc.service';
-import { MatListModule } from '@angular/material/list';
-import { MatSliderModule } from '@angular/material/slider';
-import { MeetingDataService } from './meetings/services/meeting-data.service';
-import { SfuWebrtcService } from './wss/mediasoup.service';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { FormsModule } from '@angular/forms';
+import { MeetingService } from './services/meeting.service';
+import { P2pWebrtcService } from './services/p2p-connection/p2p-webrtc.service';
+import { MeetingDataService } from './services/meeting-data.service';
+import { SfuWebrtcService } from './services/mediasoup-connection/mediasoup.service';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { LoginComponent } from './login/login.component';
+import { RegisterComponent } from './register/register.component';
+import { P404Component } from './views/p404/p404.component';
+import { ErrorPageComponent } from './views/p500/error-page.component';
+import { AuthGuard } from './core/guards/auth.guard';
+import { SecurityService } from './services/security/security.service';
+import { LoggedInAuthGuard } from './core/guards/logged-in-auth.guard';
 
 export function jwtOptionsFactory() {
   return {
@@ -50,11 +45,16 @@ export function jwtOptionsFactory() {
     HomeComponent,
     WebrtcP2pComponent,
     WebrtcSfuComponent,
-    WebrtcMutableComponent,
+    LoginComponent,
+    RegisterComponent,
+    P404Component,
+    ErrorPageComponent,
   ],
   imports: [
     BrowserModule,
+    FlexLayoutModule,
     BrowserAnimationsModule,
+    AngularMaterialModule,
     AppRoutingModule,
     ClipboardModule,
     HttpClientModule,
@@ -66,29 +66,21 @@ export function jwtOptionsFactory() {
       },
     }),
     SocketIoModule,
-    TestModule,
-    MatGridListModule,
-    MatCardModule,
-    MatMenuModule,
-    MatIconModule,
-    MatButtonModule,
     LayoutModule,
-    MatSidenavModule,
-    MatListModule,
-    MatSliderModule,
-    MatTabsModule,
-    MatCheckboxModule,
     FormsModule,
+    ReactiveFormsModule,
   ],
   providers: [
+    AuthGuard,
+    LoggedInAuthGuard,
     interceptorProviders,
-    MediasoupService,
     MeetingService,
-    MeetingApiService,
     P2pWebrtcService,
     SfuWebrtcService,
     MeetingDataService,
+    SecurityService,
   ],
   bootstrap: [AppComponent],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class AppModule {}

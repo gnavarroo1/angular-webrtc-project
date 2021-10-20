@@ -23,6 +23,8 @@ export const environment = {
         endMeetingSession: 'meetings/:meetingId',
         startBroadcastingSession: 'meetings/:meetingId/broadcasting/start',
         endBroadcastingSession: 'meetings/:meetingId/broadcasting/end',
+        register: 'sign-up',
+        login: 'login',
       },
     },
     wss: {
@@ -91,7 +93,7 @@ export const environment = {
     },
   },
   signalingServer: {
-    wssUrl: 'ws://127.0.0.1:5000',
+    wssUrl: 'wss://signaling.pry2021153.tech:8000',
   },
   webrtcP2PConfiguration: {
     rtcConfiguration: {

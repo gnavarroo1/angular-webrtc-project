@@ -23,6 +23,8 @@ export const environment = {
         endMeetingSession: 'meetings/:meetingId',
         startBroadcastingSession: 'meetings/:meetingId/broadcasting/start',
         endBroadcastingSession: 'meetings/:meetingId/broadcasting/end',
+        register: 'sign-up',
+        login: 'login',
       },
     },
     wss: {
