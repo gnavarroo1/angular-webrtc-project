@@ -49,8 +49,12 @@ export class AppComponent {
   get isRegisterUrl(): boolean {
     return this.router.url.includes('/register');
   }
+  get isMeetingUrl(): boolean {
+    return this.router.url.includes('/meetings');
+  }
+
   logout(): void {
     this.tokenManagerService.signOut();
-    window.location.reload();
+    this.router.navigate(['/login']);
   }
 }

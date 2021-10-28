@@ -22,7 +22,6 @@ export class P2pWebrtcService {
   }
   private _meetingMemberId!: string;
   private _localMeetingMember!: MeetingMemberDto;
-  negotiationsCount = 0;
   events$: Subscription[] = [];
   private _localStream!: MediaStream;
   isSignallingServerConnected$ = new BehaviorSubject<boolean>(false);
@@ -36,17 +35,17 @@ export class P2pWebrtcService {
     this.events$.push(onConnect$);
   }
   private _consumers: Map<string, P2PConsumer> = new Map<string, P2PConsumer>();
-
   get consumers(): Map<string, P2PConsumer> {
     return this._consumers;
   }
-
   public onConnectionReady(): Observable<boolean> {
     return this.isSignallingServerConnected$.asObservable();
   }
 
-  initReceive(meetingMember: MeetingMemberDto, targetMemberId: string): void {
-    console.warn('send init receive', meetingMember);
+  async initReceive(
+    meetingMember: MeetingMemberDto,
+    targetMemberId: string
+  ): Promise<void> {
     if (meetingMember._id && meetingMember.meetingId) {
       this.signalingService.initReceive({
         meetingMemberId: meetingMember._id,
@@ -56,7 +55,6 @@ export class P2pWebrtcService {
     }
   }
   joinMeeting(meetingMember: MeetingMemberDto): void {
-    console.warn('JOIN MEETING CHANNEL ON SIGNALING SERVER');
     if (meetingMember._id && meetingMember.meetingId) {
       this._meetingMemberId = meetingMember._id;
       this.signalingService.joinMeeting({
@@ -67,7 +65,7 @@ export class P2pWebrtcService {
     const onInitReceive$ = this.signalingService
       .onInitReceive()
       .subscribe((payload) => {
-        console.warn('on init receive');
+        // console.warn('on init receive');
         if (
           this.meetingDataService.meetingMember._id !== payload.targetMemberId
         ) {
@@ -80,13 +78,12 @@ export class P2pWebrtcService {
           if (
             this.meetingDataService.meetingServiceType ===
               MeetingServiceType.SFU ||
-            meetingMember.connectionType === MeetingServiceType.SFU
+            meetingMember.remoteConnectionType === MeetingServiceType.SFU
           ) {
             return;
           }
         }
         this.addConsumerConnection(payload.meetingMemberId, payload.socketId);
-        console.warn('oninitreceive', payload);
         this.signalingService.initSend({
           socketId: payload.socketId,
           meetingMemberId: payload.meetingMemberId,
@@ -99,12 +96,11 @@ export class P2pWebrtcService {
         const meetingMember = this.meetingDataService.meetingMembers.get(
           payload.srcMeetingMember
         );
-        console.warn('on init send', payload, meetingMember);
         if (meetingMember) {
           if (
             this.meetingDataService.meetingServiceType ===
               MeetingServiceType.SFU ||
-            meetingMember.connectionType === MeetingServiceType.SFU
+            meetingMember.remoteConnectionType === MeetingServiceType.SFU
           ) {
             return;
           }
@@ -130,21 +126,12 @@ export class P2pWebrtcService {
               if (consumer.ignoreOffer) {
                 return;
               }
-              if (offerCollision) {
-                await Promise.all([
-                  consumer.rtcPeerConnection.setLocalDescription({
-                    type: 'rollback',
-                  }),
-                  consumer.rtcPeerConnection.setRemoteDescription(payload.sdp),
-                ]);
-              } else {
-                await consumer.rtcPeerConnection.setRemoteDescription(
-                  payload.sdp
-                );
-              }
 
-              const answer = await consumer.rtcPeerConnection.createAnswer();
-              await consumer.rtcPeerConnection.setLocalDescription(answer);
+              await consumer.rtcPeerConnection.setRemoteDescription(
+                payload.sdp
+              );
+
+              await consumer.rtcPeerConnection.setLocalDescription();
               this.signalingService.answer({
                 id: this._meetingMemberId,
                 target: payload.meetingMemberId,
@@ -162,7 +149,6 @@ export class P2pWebrtcService {
       .onAnswer()
       .subscribe(async (payload: any) => {
         try {
-          // console.warn('ON ANSWER', payload);
           const consumer = this._consumers.get(payload.meetingMemberId);
           if (consumer) {
             await consumer.rtcPeerConnection.setRemoteDescription(
@@ -177,7 +163,6 @@ export class P2pWebrtcService {
       .onIceCandidate()
       .subscribe(async (payload: any) => {
         try {
-          // console.warn('ON ICECANDIDATE', payload);
           const consumer = this._consumers.get(payload.meetingMemberId);
           if (consumer) {
             if (payload.candidate) {
@@ -202,7 +187,6 @@ export class P2pWebrtcService {
     const onMemberDisconnection$ = this.signalingService
       .onMemberDisconnect()
       .subscribe((payload) => {
-        // console.warn('MEMBER DISCONNECTED', payload);
         const member = this.consumers.get(payload.meetingMemberId);
         if (member) {
           member.rtcPeerConnection.close();
@@ -226,10 +210,9 @@ export class P2pWebrtcService {
       const member =
         this.meetingDataService.meetingMembers.get(meetingMemberId);
       if (member) {
-        if (member.p2pConsumerConnection) {
-          member.p2pConsumerConnection.rtcPeerConnection.close();
-          member.p2pConsumerConnection;
-        }
+        // if (member.p2pConsumerConnection) {
+        //   member.p2pConsumerConnection.rtcPeerConnection.close();
+        // }
         const configuration = environment.rtcConfiguration;
         const peer = new P2PConsumer({
           id: meetingMemberId,
@@ -238,8 +221,6 @@ export class P2pWebrtcService {
           isPolite: isPolite,
         });
         member.p2pConsumerConnection = peer;
-        peer.remoteVideoTrack = new MediaStream();
-        console.warn('p2p member', member);
         this._consumers.set(meetingMemberId, peer);
         this._localStream.getTracks().forEach((track) => {
           switch (track.kind) {
@@ -250,6 +231,12 @@ export class P2pWebrtcService {
                   direction: this.localMeetingMember.produceVideoEnabled
                     ? 'sendonly'
                     : 'inactive',
+                  streams: [new MediaStream([track])],
+                  sendEncodings: [
+                    {
+                      maxBitrate: 1572864,
+                    },
+                  ],
                 }
               );
               break;
@@ -260,6 +247,7 @@ export class P2pWebrtcService {
                   direction: this.localMeetingMember.produceAudioEnabled
                     ? 'sendonly'
                     : 'inactive',
+                  streams: [new MediaStream([track])],
                 }
               );
               break;
@@ -267,60 +255,35 @@ export class P2pWebrtcService {
         });
 
         peer.rtcPeerConnection.ontrack = ({ transceiver, track, streams }) => {
-          const consumer =
-            this.meetingDataService.meetingMembers.get(meetingMemberId);
-
-          transceiver.receiver.track.onunmute = () => {
-            console.log(`${track.kind} unmuted`);
-          };
-          transceiver.receiver.track.onmute = () => {
-            console.log(`${track.kind} muted`, track);
-          };
-          transceiver.receiver.track.onended = () => {
-            console.log(`${track.kind} ended`, track);
-          };
+          const stream = streams[0];
+          // transceiver.receiver.track.onunmute = () => {
+          //   // console.log(`${track.kind} unmuted`);
+          // };
+          // transceiver.receiver.track.onmute = () => {
+          //   // console.log(`${track.kind} muted`, track);
+          // };
+          // transceiver.receiver.track.onended = () => {
+          //   // console.log(`${track.kind} ended`, track);
+          // };
           switch (track.kind) {
             case 'audio':
               if (!peer.noiseRecvTransceiver) {
                 peer.noiseRecvTransceiver = transceiver;
               }
-              if (!peer.remoteAudioTrack) {
-                peer.remoteAudioTrack = new MediaStream([track]);
-              }
+              peer.remoteAudioTrack = track;
+              member.audioStream = stream;
               break;
             case 'video': {
-              if (streams && streams.length > 0) {
-                if (!peer.screenRecvTransceiver) {
-                  peer.screenRecvTransceiver = transceiver;
-                }
-                if (!peer.screenStream) {
-                  peer.screenStream = streams[0];
-                }
-              } else {
-                if (!peer.videoRecvTransceiver) {
-                  peer.videoRecvTransceiver = transceiver;
-                }
-                if (!peer.videoReady) {
-                  console.warn('closing consumers video if exists');
-                  if (member.sfuConsumerConnection) {
-                    member.sfuConsumerConnection.videoReady = false;
-                    member.sfuConsumerConnection.consumerVideo?.pause();
-                    member.sfuConsumerConnection.consumerVideoStream
-                      ?.getTracks()
-                      .forEach((track) => {
-                        track.stop();
-                      });
-                    member.sfuConsumerConnection.consumerVideo?.close();
-                  }
-                  peer.remoteVideoTrack = new MediaStream([track]);
-                  member.videoStream = peer.remoteVideoTrack;
-                  peer.videoReady = true;
-                }
+              if (!peer.videoRecvTransceiver) {
+                peer.videoRecvTransceiver = transceiver;
               }
+              peer.remoteVideoTrack = track;
+              member.videoStream = stream;
               break;
             }
           }
         };
+
         peer.rtcPeerConnection.onicecandidate = ({ candidate }) => {
           if (candidate) {
             this.signalingService.iceCandidate({
@@ -335,6 +298,9 @@ export class P2pWebrtcService {
         peer.makingOffer = false;
         peer.ignoreOffer = false;
         peer.rtcPeerConnection.onnegotiationneeded = async () => {
+          console.log(
+            `On negotiation needed : ${peer.rtcPeerConnection.connectionState}`
+          );
           try {
             this.assert_equals(
               peer.rtcPeerConnection.signalingState,
@@ -374,44 +340,37 @@ export class P2pWebrtcService {
             peer.makingOffer = false;
           }
         };
-        peer.rtcPeerConnection.onicegatheringstatechange = (ev) => {
-          console.log(
-            `ICE gathering state change: ${peer.rtcPeerConnection.iceGatheringState} `
-          );
-        };
+        // peer.rtcPeerConnection.onicegatheringstatechange = (ev) => {
+        //   console.log(
+        //     `ICE gathering state change: ${peer.rtcPeerConnection.iceGatheringState} `
+        //   );
+        // };
 
-        peer.rtcPeerConnection.onconnectionstatechange = async (ev) => {
-          if (peer.rtcPeerConnection.connectionState === 'connected') {
-            peer.getStats();
-            // peer.connected = true;
-            // interval(1000)
-            //   .pipe(takeWhile(() => peer.connected))
-            //   .subscribe((val) => {
-            //     peer.getStats();
-            //   });
-            // const stats = await peer.getStats();
-            // console.warn('stats ', stats);
-          } else {
-            peer.connected = false;
-          }
-          console.log(
-            ` Connection state change: ${peer.rtcPeerConnection.connectionState}`
-          );
-        };
-        peer.rtcPeerConnection.onsignalingstatechange = (ev) => {
-          console.log(
-            ` Signal state change: ${peer.rtcPeerConnection.connectionState}`
-          );
-        };
+        // peer.rtcPeerConnection.onconnectionstatechange = async (ev) => {
+        //   peer.connected =
+        //     peer.rtcPeerConnection.connectionState === 'connected';
+        //   // if (peer.rtcPeerConnection.connectionState === 'connected') {
+        //
+        //   // }
+        //   console.log(
+        //     ` Connection state change: ${peer.rtcPeerConnection.connectionState}`
+        //   );
+        // };
+        // peer.rtcPeerConnection.onsignalingstatechange = (ev) => {
+        //   console.log(
+        //     ` Signal state change: ${peer.rtcPeerConnection.connectionState}`
+        //   );
+        // };
         peer.rtcPeerConnection.oniceconnectionstatechange = (ev) => {
-          console.log(
-            `ICE connection state change: ${peer.rtcPeerConnection.iceConnectionState} `
-          );
+          // console.log(
+          //   `ICE connection state change: ${peer.rtcPeerConnection.iceConnectionState} `
+          // );
           if (peer.rtcPeerConnection.iceConnectionState === 'failed') {
             peer.rtcPeerConnection.restartIce();
           }
         };
       }
+      return;
     }
   }
 

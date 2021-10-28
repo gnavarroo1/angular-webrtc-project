@@ -1,28 +1,26 @@
 import { MeetingServiceType, MemberType } from './defines';
 import { P2PConsumer } from './p2p-consumer.class';
 import { SfuConsumer } from './sfu-consumer.class';
-import { EventEmitter } from '@angular/core';
+
 export class MeetingMember {
+  //Getter and Setters
+  get localConnectionType(): MeetingServiceType {
+    return this._localConnectionType;
+  }
+  set localConnectionType(value: MeetingServiceType) {
+    this._localConnectionType = value;
+  }
+
   get id(): string {
     return this._id;
   }
-
   set id(value: string) {
     this._id = value;
-  }
-
-  get sessionUserId(): string {
-    return this._sessionUserId;
-  }
-
-  set sessionUserId(value: string) {
-    this._sessionUserId = value;
   }
 
   get userId(): string {
     return this._userId;
   }
-
   set userId(value: string) {
     this._userId = value;
   }
@@ -30,7 +28,6 @@ export class MeetingMember {
   get nickname(): string {
     return this._nickname;
   }
-
   set nickname(value: string) {
     this._nickname = value;
   }
@@ -38,7 +35,6 @@ export class MeetingMember {
   get memberType(): MemberType {
     return this._memberType;
   }
-
   set memberType(value: MemberType) {
     this._memberType = value;
   }
@@ -46,23 +42,20 @@ export class MeetingMember {
   get isScreenSharing(): boolean {
     return this._isScreenSharing;
   }
-
   set isScreenSharing(value: boolean) {
     this._isScreenSharing = value;
   }
 
-  get connectionType(): MeetingServiceType {
-    return this._connectionType;
+  get remoteConnectionType(): MeetingServiceType {
+    return this._remoteConnectionType;
   }
-
-  set connectionType(value: MeetingServiceType) {
-    this._connectionType = value;
+  set remoteConnectionType(value: MeetingServiceType) {
+    this._remoteConnectionType = value;
   }
 
   get canScreenShare(): boolean {
     return this._canScreenShare;
   }
-
   set canScreenShare(value: boolean) {
     this._canScreenShare = value;
   }
@@ -70,7 +63,6 @@ export class MeetingMember {
   get produceVideoEnabled(): boolean {
     return this._produceVideoEnabled;
   }
-
   set produceVideoEnabled(value: boolean) {
     this._produceVideoEnabled = value;
   }
@@ -78,7 +70,6 @@ export class MeetingMember {
   get produceAudioEnabled(): boolean {
     return this._produceAudioEnabled;
   }
-
   set produceAudioEnabled(value: boolean) {
     this._produceAudioEnabled = value;
   }
@@ -86,7 +77,6 @@ export class MeetingMember {
   get produceVideoAllowed(): boolean {
     return this._produceVideoAllowed;
   }
-
   set produceVideoAllowed(value: boolean) {
     this._produceVideoAllowed = value;
   }
@@ -94,7 +84,6 @@ export class MeetingMember {
   get produceAudioAllowed(): boolean {
     return this._produceAudioAllowed;
   }
-
   set produceAudioAllowed(value: boolean) {
     this._produceAudioAllowed = value;
   }
@@ -102,7 +91,6 @@ export class MeetingMember {
   get volume(): number {
     return this._volume;
   }
-
   set volume(value: number) {
     this._volume = value;
   }
@@ -110,7 +98,6 @@ export class MeetingMember {
   get p2pConsumerConnection(): P2PConsumer {
     return this._p2pConsumerConnection;
   }
-
   set p2pConsumerConnection(value: P2PConsumer) {
     this._p2pConsumerConnection = value;
   }
@@ -118,17 +105,42 @@ export class MeetingMember {
   get sfuConsumerConnection(): SfuConsumer {
     return this._sfuConsumerConnection;
   }
-
   set sfuConsumerConnection(value: SfuConsumer) {
     this._sfuConsumerConnection = value;
   }
+
+  get audioStream(): MediaStream | undefined | null {
+    return this._audioStream;
+  }
+  set audioStream(value: MediaStream | undefined | null) {
+    this._audioStream = value;
+  }
+
+  get videoStream(): MediaStream | undefined | null {
+    return this._videoStream;
+  }
+  set videoStream(value) {
+    this._videoStream = value;
+  }
+
+  get screenStream(): MediaStream | undefined | null {
+    return this.sfuConsumerConnection?.consumerScreenStream;
+  }
+
+  get hasSFUConnection(): boolean {
+    return (
+      this.remoteConnectionType === MeetingServiceType.SFU ||
+      this.localConnectionType === MeetingServiceType.SFU
+    );
+  }
+
   private _id: string;
-  private _sessionUserId: string;
   private _userId: string;
   private _nickname: string;
   private _memberType: MemberType;
   private _isScreenSharing: boolean;
-  private _connectionType: MeetingServiceType;
+  private _remoteConnectionType: MeetingServiceType;
+  private _localConnectionType: MeetingServiceType;
   private _canScreenShare: boolean;
   private _produceVideoEnabled: boolean;
   private _produceAudioEnabled: boolean;
@@ -138,14 +150,15 @@ export class MeetingMember {
   private _p2pConsumerConnection!: P2PConsumer;
   private _sfuConsumerConnection!: SfuConsumer;
   private _videoStream: MediaStream | undefined | null;
+  private _audioStream: MediaStream | undefined | null;
   constructor(meetingMember: {
     _id: string;
     userId: string;
-    sessionUserId: string;
     memberType: MemberType;
     nickname: string;
     isScreenSharing: boolean;
     connectionType: MeetingServiceType;
+    localConnectionType: MeetingServiceType;
     canScreenShare: boolean;
     produceVideoEnabled: boolean;
     produceVideoAllowed: boolean;
@@ -153,55 +166,130 @@ export class MeetingMember {
     produceAudioAllowed: boolean;
   }) {
     this._id = meetingMember._id;
-    this._sessionUserId = meetingMember.sessionUserId;
     this._userId = meetingMember.userId;
     this._nickname = meetingMember.nickname;
     this._memberType = meetingMember.memberType;
     this._isScreenSharing = meetingMember.isScreenSharing;
-    this._connectionType = meetingMember.connectionType;
+    this._remoteConnectionType = meetingMember.connectionType;
     this._canScreenShare = meetingMember.canScreenShare;
+    this._localConnectionType = meetingMember.localConnectionType;
     this._produceAudioAllowed = meetingMember.produceAudioAllowed;
     this._produceAudioEnabled = meetingMember.produceAudioEnabled;
     this._produceVideoAllowed = meetingMember.produceVideoAllowed;
     this._produceVideoEnabled = meetingMember.produceVideoEnabled;
     this.sfuConsumerConnection = new SfuConsumer();
-  }
-  get videoStream(): MediaStream | undefined | null {
-    return this._videoStream;
-  }
-  set videoStream(value) {
-    console.log(Date.now());
-    this._videoStream = value;
+    // this._eventEmitter.on('connectionTypeUpdate', (to: MeetingServiceType) => {
+    //
+    // });
   }
 
-  get meshVideoStream(): MediaStream | undefined | null {
-    return this.p2pConsumerConnection?.remoteVideoTrack;
-  }
-
-  get sfuVideoStream(): MediaStream | undefined | null {
-    return this.sfuConsumerConnection?.consumerVideoStream;
-  }
-
-  get audioStream(): MediaStream | undefined | null {
-    switch (this.connectionType) {
+  //Functions
+  /**
+   * Used when the remote member is the one who changes the connection type
+   * Updates the remote connection type and sets the audio and video stream accordingly
+   * @param to
+   */
+  updateRemoteConnectionType(to: MeetingServiceType): void {
+    console.warn('connection type changed to', to);
+    console.warn(
+      'video track available',
+      this.sfuConsumerConnection.consumerVideoTrack,
+      this.p2pConsumerConnection.remoteVideoTrack
+    );
+    console.warn('currentvideoTrack', this.videoStream?.getVideoTracks()[0]);
+    switch (to) {
       case MeetingServiceType.SFU:
-        return this.sfuConsumerConnection?.consumerAudioStream;
+        if (
+          this.sfuConsumerConnection.consumerVideo &&
+          this.produceVideoEnabled
+        ) {
+          this.videoStream = new MediaStream([
+            this.sfuConsumerConnection.consumerVideo.track,
+          ]);
+        }
+        if (
+          this.sfuConsumerConnection.consumerAudio &&
+          this.produceAudioEnabled
+        ) {
+          this.audioStream = new MediaStream([
+            this.sfuConsumerConnection.consumerAudio.track,
+          ]);
+        }
+        break;
       case MeetingServiceType.MESH:
-        return this.p2pConsumerConnection?.remoteAudioTrack;
+        if (
+          this.p2pConsumerConnection.remoteVideoTrack &&
+          this.produceVideoEnabled
+        ) {
+          this.videoStream = new MediaStream([
+            this.p2pConsumerConnection.remoteVideoTrack,
+          ]);
+        }
+        if (
+          this.p2pConsumerConnection.remoteAudioTrack &&
+          this.produceAudioEnabled
+        ) {
+          this.audioStream = new MediaStream([
+            this.p2pConsumerConnection.remoteAudioTrack,
+          ]);
+        }
+        break;
     }
-    return null;
-  }
-  get screenStream(): MediaStream | undefined | null {
-    switch (this.connectionType) {
-      case MeetingServiceType.SFU:
-        return this.sfuConsumerConnection?.consumerScreenStream;
-      case MeetingServiceType.MESH:
-        return this.p2pConsumerConnection?.screenStream;
-    }
-    return null;
+    this.remoteConnectionType = to;
+    // this._eventEmitter.emit('connectionTypeUpdate', to);
   }
 
-  get hasSFUConnection(): boolean {
-    return this.connectionType === MeetingServiceType.SFU;
+  /**
+   * Used when the local member is the one who changes the connection type
+   * Updates the local connection type and sets the audio and video stream accordingly
+   * @param to
+   */
+  updateLocalConnectionType(to: MeetingServiceType): void {
+    console.warn('connection type changed to', to);
+    console.warn(
+      'video track available',
+      this.sfuConsumerConnection.consumerVideoTrack,
+      this.p2pConsumerConnection.remoteVideoTrack
+    );
+    console.warn('currentvideoTrack', this.videoStream?.getVideoTracks()[0]);
+    switch (to) {
+      case MeetingServiceType.SFU:
+        if (
+          this.sfuConsumerConnection.consumerVideo &&
+          this.produceVideoEnabled
+        ) {
+          this.videoStream = new MediaStream([
+            this.sfuConsumerConnection.consumerVideo.track,
+          ]);
+        }
+        if (
+          this.sfuConsumerConnection.consumerAudio &&
+          this.produceAudioEnabled
+        ) {
+          this.audioStream = new MediaStream([
+            this.sfuConsumerConnection.consumerAudio.track,
+          ]);
+        }
+        break;
+      case MeetingServiceType.MESH:
+        if (
+          this.p2pConsumerConnection.remoteVideoTrack &&
+          this.produceVideoEnabled
+        ) {
+          this.videoStream = new MediaStream([
+            this.p2pConsumerConnection.remoteVideoTrack,
+          ]);
+        }
+        if (
+          this.p2pConsumerConnection.remoteAudioTrack &&
+          this.produceAudioEnabled
+        ) {
+          this.audioStream = new MediaStream([
+            this.p2pConsumerConnection.remoteAudioTrack,
+          ]);
+        }
+        break;
+    }
+    this.localConnectionType = to;
   }
 }

@@ -1,4 +1,4 @@
-<mat-toolbar class="app-header" color="primary">
+<mat-toolbar class="app-header" color="primary" *ngIf="!isMeetingUrl">
     <div><a class="positronx" href="">WebRTC Platform</a></div>
     <span class="nav-tool-items">
     <a (click)="goToLogin()" *ngIf="!isLoggedIn && !isLoginUrl" [class.mat-raised-button]="!isLoginUrl" mat-button

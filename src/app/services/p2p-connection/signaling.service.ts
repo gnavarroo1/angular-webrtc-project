@@ -9,10 +9,7 @@ export class SignalingService {
   constructor(private socket: SignalingSocket) {
     // this.socket.connect();
     this.socket.on('connect', () => {
-      console.warn(
-        'SOCKET CONNECTED TO API SIGNALING SERVER ON ',
-        this.socket.ioSocket.id
-      );
+      console.warn('SOCKET CONNECTED TO API SIGNALING SERVER');
     });
   }
 

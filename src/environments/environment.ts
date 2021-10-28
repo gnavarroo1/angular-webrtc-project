@@ -6,9 +6,8 @@ import * as uuid from 'uuid';
 
 export const environment = {
   development: true,
-  user_id: uuid.v4(),
   production: false,
-  name: 'development',
+  name: 'production',
   token: {
     authHeaderKey: 'Authorization',
   },
@@ -41,55 +40,61 @@ export const environment = {
       namespaces: {},
     },
   },
+  videoSettings: {
+    //
+    width: {
+      min: 480,
+      max: 1280,
+    },
+    height: {
+      min: 360,
+      max: 720,
+    },
+    framerate: 30, // max fps
+    aspectRatio: {
+      min: 4 / 3,
+      max: 16 / 9,
+    },
+  },
+  maxSendBitrate: 1536000, //1500 kbps ~ 960x540 / 854x480 max bitrate  | 1280x720 min bitrate
+  screenSettings: {
+    width: {
+      min: 640,
+    },
+    height: {
+      min: 480,
+    },
+  },
   mediasoupClient: {
     configuration: {
-      videoAspectRatio: 1.777,
-      resolution: 'medium',
-      framerate: 30,
-      defaultScreenResolution: 'veryhigh',
-      defaultScreenSharingFrameRate: 5,
-      // Enable or disable simulcast for webcam video
-      simulcast: true,
+      // videoAspectRatio: 1.777,
+      // resolution: 'medium',
+      // defaultScreenResolution: 'veryhigh',
+      // defaultScreenSharingFrameRate: 5,
+      // // Enable or disable simulcast for webcam video
+      // simulcast: true,
       // Enable or disable simulcast for screen sharing video
-      simulcastSharing: false,
+      // simulcastSharing: false,
       camVideoSimulcastEncodings: [
         {
           rid: 'r0',
-          scaleResolutionDownBy: 8,
-          maxBitrate: 100000,
-          scalabilityMode: 'S1T3',
+          scaleResolutionDownBy: 4,
+          maxBitrate: 512000,
+          scalabilityMode: 'S1T1',
         },
         {
           rid: 'r1',
-          scaleResolutionDownBy: 4,
-          maxBitrate: 200000,
-          scalabilityMode: 'S1T3',
+          scaleResolutionDownBy: 2,
+          maxBitrate: 768000,
+          scalabilityMode: 'S1T1',
         },
         {
           rid: 'r2',
-          scaleResolutionDownBy: 2,
-          maxBitrate: 700000,
-          scalabilityMode: 'S1T3',
-        },
-        {
-          rid: 'r3',
           scaleResolutionDownBy: 1,
-          maxBitrate: 2500000,
-          scalabilityMode: 'S1T3',
+          maxBitrate: 1536000,
+          scalabilityMode: 'S1T1',
         },
       ],
-      iceServers: [
-        {
-          urls: 'stun:stun.l.google.com:19302',
-        },
-        {
-          urls: 'stun:stun1.l.google.com:19302',
-        },
-        {
-          urls: 'stun:stun2.l.google.com:19302',
-        },
-      ],
-      iceCandidatePoolSize: 10,
     },
   },
   signalingServer: {

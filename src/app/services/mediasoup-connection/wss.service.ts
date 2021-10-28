@@ -1,18 +1,15 @@
 import { Injectable } from '@angular/core';
 import { Socket } from 'ngx-socket-io';
 import { Observable } from 'rxjs';
-
-import { NGXLogger } from 'ngx-logger';
 import { IMemberIdentifier } from '../../types/defines';
 import { environment } from '../../../environments/environment';
-import { MediasoupSocket } from '../../types/custom-sockets';
 
 @Injectable({
   providedIn: 'root',
 })
 export class WssService {
-  private _socket!: MediasoupSocket;
-  get socket(): MediasoupSocket {
+  private _socket!: Socket;
+  get socket(): Socket {
     return this._socket;
   }
   public setSocket(sessionId: string, userId: string): void {
@@ -26,18 +23,14 @@ export class WssService {
         },
       },
     });
-    // this._socket.connect();
   }
-  constructor(private logger: NGXLogger) {}
-
+  constructor() {}
   async requestMediaConfigure(): Promise<any> {
     return this._socket.emit('mediaconfigure', '');
   }
-
   async requestHandshake(payload: Record<string, any>): Promise<any> {
     return this._socket.emit('handshake', payload);
   }
-
   onMediaClientConnected(): Observable<any> {
     return this._socket.fromEvent('mediaClientConnected');
   }

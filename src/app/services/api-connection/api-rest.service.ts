@@ -57,11 +57,7 @@ export class ApiRestService {
     return this.http.get<any>(url);
   }
 
-  startBroadcastingSession(
-    meetingId: string,
-    sessionUserId: string,
-    userId: string
-  ): Observable<any> {
+  startBroadcastingSession(meetingId: string, userId: string): Observable<any> {
     const url = (
       environment.apiServer.api.url +
       environment.apiServer.api.methods.startBroadcastingSession
@@ -69,14 +65,9 @@ export class ApiRestService {
     return this.http.post(url, {
       meetingId: meetingId,
       userId: userId,
-      sessionUserId: sessionUserId,
     });
   }
-  endBroadcastingSession(
-    meetingId: string,
-    sessionUserId: string,
-    userId: string
-  ): Observable<any> {
+  endBroadcastingSession(meetingId: string, userId: string): Observable<any> {
     const url = (
       environment.apiServer.api.url +
       environment.apiServer.api.methods.endBroadcastingSession
@@ -84,7 +75,6 @@ export class ApiRestService {
     return this.http.post(url, {
       meetingId: meetingId,
       userId: userId,
-      sessionUserId: sessionUserId,
     });
   }
 }

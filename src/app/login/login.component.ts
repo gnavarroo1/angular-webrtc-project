@@ -15,7 +15,7 @@ export class LoginComponent implements OnInit {
   submitted = false;
   private backUrl = '';
   constructor(
-    private activatedRoute: ActivatedRoute,
+    private route: ActivatedRoute,
     private formBuilder: FormBuilder,
     private router: Router,
     private apiService: SecurityService,
@@ -30,13 +30,7 @@ export class LoginComponent implements OnInit {
     return this.form.controls;
   }
 
-  ngOnInit(): void {
-    this.activatedRoute.queryParams.subscribe((params) => {
-      if (params && params.backUrl) {
-        this.backUrl = params.returnUrl;
-      }
-    });
-  }
+  ngOnInit(): void {}
 
   goToHome() {
     this.router.navigateByUrl('/');
@@ -59,11 +53,10 @@ export class LoginComponent implements OnInit {
           if (data.accessToken) {
             this.tokenManager.saveAuthToken(data.accessToken);
           }
-          if (!this.backUrl) {
-            this.goToHome();
-          } else {
-            this.router.navigateByUrl(this.backUrl);
-          }
+
+          const queryParams = this.route.snapshot.queryParams;
+          const returnUrl = queryParams.returnUrl ? queryParams.returnUrl : '/';
+          this.router.navigateByUrl(returnUrl);
         },
         error: (error) => {
           console.error(error);

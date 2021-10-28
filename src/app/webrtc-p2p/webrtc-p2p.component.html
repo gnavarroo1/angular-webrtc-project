@@ -169,7 +169,7 @@
                   <video autoplay="" playsinline [id]="peer.key" [srcObject]="peer.value.videoStream" *ngIf="peer.value.produceVideoAllowed && peer.value.produceVideoEnabled && !peer.value.isScreenSharing " muted ></video>
 <!--                  <video autoplay="" playsinline [id]="peer.key" [srcObject]="(peer.value.p2pConsumerConnection.videoReady)?peer.value.meshVideoStream:null" *ngIf="peer.value.produceVideoAllowed && peer.value.produceVideoEnabled && !peer.value.isScreenSharing&& !(peer.value.sfuConsumerConnection.videoReady)" muted ></video>-->
                   <video autoplay="" playsinline [id]="peer.key" [srcObject]="peer.value.screenStream" *ngIf="peer.value.screenStream && peer.value.produceVideoAllowed && peer.value.isScreenSharing" muted></video>
-                  <audio autoplay="" playsinline  [srcObject]="peer.value.audioStream" *ngIf="peer.value.audioStream && peer.value.produceAudioAllowed && peer.value.produceAudioEnabled" [muted]="!peer.value.produceAudioEnabled"></audio>
+                  <audio autoplay="" playsinline  [srcObject]="peer.value.audioStream" *ngIf="peer.value.audioStream && peer.value.produceAudioAllowed && peer.value.produceAudioEnabled" [volume]="peer.value.volume" [muted]="!peer.value.produceAudioEnabled"></audio>
                   <canvas class="face-detection"></canvas>
                   <div class="volume-container">
                     <div class="bar level0"></div>

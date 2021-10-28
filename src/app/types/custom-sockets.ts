@@ -29,7 +29,6 @@ export class MediasoupSocket extends Socket {
         query: {
           token: localStorage.getItem(environment.token.authHeaderKey),
           session_id: '4zsnRr+4wWBLFcSb',
-          user_id: environment.user_id,
         },
       },
     });

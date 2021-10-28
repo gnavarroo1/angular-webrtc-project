@@ -14,10 +14,7 @@ import {
 export class ApiGatewayService {
   constructor(private socket: ApiMeetingNamespaceSocket) {
     this.socket.on('connect', () => {
-      console.warn(
-        'SOCKET CONNECTED TO API WSS SERVER ON ',
-        this.socket.ioSocket.id
-      );
+      console.warn('SOCKET CONNECTED TO API WSS SERVER');
     });
   }
   onConnectionReady(): Observable<any> {
@@ -184,6 +181,7 @@ export class ApiGatewayService {
     return new Promise<any>((resolve, reject) => {
       try {
         this.socket.emit('toggleConnectionType', payload, (response: any) => {
+          console.warn('toggle service');
           resolve(response);
         });
       } catch (e) {

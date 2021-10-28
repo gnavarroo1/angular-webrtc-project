@@ -19,9 +19,6 @@ interface IMediaDevices extends MediaDevices {
 export class DeviceService {
   _devices: Observable<Promise<Devices>>;
   private deviceBroadcast = new ReplaySubject<Promise<Devices>>();
-  private videoAspectRatio = { min: 4 / 3, ideal: 1 };
-  private width = { min: 640, ideal: 1280 };
-  private height = { min: 480, ideal: 720 };
 
   constructor() {
     if (navigator && navigator.mediaDevices) {
@@ -100,7 +97,6 @@ export class DeviceService {
   }
 
   private getMediaDevicesConstraints() {
-    const { framerate } = environment.mediasoupClient.configuration;
     const supports = navigator.mediaDevices.getSupportedConstraints();
     if (!supports['width'] || !supports['height']) {
       throw Error('Unsupported constraints');
@@ -108,13 +104,17 @@ export class DeviceService {
       const constraints: MediaStreamConstraints = {
         audio: true,
         video: {
-          aspectRatio: this.videoAspectRatio,
-          width: this.width,
-          height: this.height,
+          width: environment.videoSettings.width,
+          height: environment.videoSettings.height,
         },
       };
       if (supports.frameRate) {
-        (constraints.video as MediaTrackConstraints).frameRate = framerate;
+        (constraints.video as MediaTrackConstraints).frameRate =
+          environment.videoSettings.framerate;
+      }
+      if (supports.aspectRatio) {
+        (constraints.video as MediaTrackConstraints).aspectRatio =
+          environment.videoSettings.aspectRatio;
       }
       if (supports.echoCancellation) {
         switch (typeof constraints.audio) {
@@ -141,7 +141,7 @@ export class DeviceService {
     return new Promise((resolve, reject) => {
       return mediaDevices
         .getDisplayMedia({
-          video: true,
+          video: environment.screenSettings,
         })
         .then((stream) => {
           resolve(stream);

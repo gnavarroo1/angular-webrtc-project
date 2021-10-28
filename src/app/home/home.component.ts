@@ -34,11 +34,7 @@ export class HomeComponent {
               allowOutsideClick: false,
               confirmButtonText: 'Go to meeting room',
             }).then(() => {
-              this.router.navigate(['/meetings'], {
-                state: {
-                  meetingId: data._id,
-                },
-              });
+              this.router.navigateByUrl('/meetings/join/' + data._id);
             });
           },
           error: (error) => {

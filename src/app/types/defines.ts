@@ -45,6 +45,7 @@ export interface IPeerStat {
   readonly firCount: number;
   readonly fractionLost: number;
   readonly kind: TKind;
+  readonly jitter: number;
   readonly mimeType: string;
   readonly nackCount: number;
   readonly nackPacketCount: number;
@@ -88,7 +89,6 @@ export type TChatDto = {
 
 export type MeetingMemberDto = {
   _id?: string;
-  sessionUserId: string;
   userId: string;
   isGuest?: boolean;
   nickname?: string;
@@ -127,12 +127,7 @@ export type Stats = { kind: TKind; user_id: string; stats: IPeerStat[] };
 export interface IMemberIdentifier {
   id: string;
   kind: MemberType;
-  volume?: number;
   isScreenSharing?: boolean;
-  producerAudioEnabled?: boolean;
-  producerVideoEnabled?: boolean;
-  globalAudioEnabled?: boolean;
-  globalVideoEnabled?: boolean;
 }
 export type WebRtcTransportResponse = {
   type: TPeer;

@@ -1,10 +1,4 @@
 export class P2PConsumer {
-  get screenStream(): MediaStream {
-    return this._screenStream;
-  }
-  set screenStream(value: MediaStream) {
-    this._screenStream = value;
-  }
   get socketId(): string {
     return this._socketId;
   }
@@ -29,12 +23,6 @@ export class P2PConsumer {
   set videoRecvTransceiver(value: RTCRtpTransceiver) {
     this._videoRecvTransceiver = value;
   }
-  get screenRecvTransceiver(): RTCRtpTransceiver {
-    return this._screenRecvTransceiver;
-  }
-  set screenRecvTransceiver(value: RTCRtpTransceiver) {
-    this._screenRecvTransceiver = value;
-  }
   get noiseSendTransceiver(): RTCRtpTransceiver {
     return this._noiseSendTransceiver;
   }
@@ -47,17 +35,17 @@ export class P2PConsumer {
   set videoSendTransceiver(value: RTCRtpTransceiver) {
     this._videoSendTransceiver = value;
   }
-  get remoteVideoTrack(): MediaStream {
+  get remoteVideoTrack(): MediaStreamTrack {
     return this._remoteVideoTrack;
   }
-  set remoteVideoTrack(value: MediaStream) {
+  set remoteVideoTrack(value: MediaStreamTrack) {
     // const audioTracks = this.remoteStream.getAudioTracks();
     this._remoteVideoTrack = value;
   }
-  get remoteAudioTrack(): MediaStream {
+  get remoteAudioTrack(): MediaStreamTrack {
     return this._remoteAudioTrack;
   }
-  set remoteAudioTrack(value: MediaStream) {
+  set remoteAudioTrack(value: MediaStreamTrack) {
     this._remoteAudioTrack = value;
   }
   get id(): string {
@@ -117,9 +105,8 @@ export class P2PConsumer {
   private _videoRecvTransceiver!: RTCRtpTransceiver;
   private _screenRecvTransceiver!: RTCRtpTransceiver;
   private _socketId: string;
-  private _remoteVideoTrack!: MediaStream;
-  private _remoteAudioTrack!: MediaStream;
-  private _screenStream!: MediaStream;
+  private _remoteVideoTrack!: MediaStreamTrack;
+  private _remoteAudioTrack!: MediaStreamTrack;
   private _videoReady = false;
   private _statsSummary: Record<string, any> = {};
 
@@ -154,7 +141,7 @@ export class P2PConsumer {
       stats.forEach((report) => {
         switch (report.type as RTCStatsType) {
           case 'transport':
-            console.warn(report.type, report);
+            // console.warn(report.type, report);
             summary[report.type] = {
               bytesSent: report.bytesSent,
               bytesReceived: report.bytesReceived,
@@ -164,7 +151,7 @@ export class P2PConsumer {
             };
             break;
           case 'remote-inbound-rtp':
-            console.warn(report.type, report);
+            // console.warn(report.type, report);
             summary[report.kind] = {
               ...summary[report.kind],
               send: {
@@ -177,18 +164,27 @@ export class P2PConsumer {
 
             break;
           case 'inbound-rtp':
-            console.warn(report.type, report);
+            // console.warn(report.type, report);
             summary[report.mediaType] = {
               ...summary[report.mediaType],
               bytesReceived: report.bytesReceived,
+              framesDecoded: report.framesDecoded,
+              frameHeight: report.frameHeight,
+              frameWidth: report.frameWidth,
+              jitter: report.jitter,
+              timestamp: report.timestamp,
             };
             break;
           case 'outbound-rtp':
+            // console.warn(report.type, report);
             summary[report.kind] = {
               ...summary[report.kind],
               bytesSent: report.bytesSent,
               packetsSent: report.packetsSent,
               qualityLimitationReason: report.qualityLimitationReason,
+              framesEncoded: report.framesEncoded,
+              frameHeight: report.frameHeight,
+              frameWidth: report.frameWidth,
               totalEncodedTime: report.totalEncodedTime,
               timestamp: report.timestamp,
             };
@@ -197,48 +193,112 @@ export class P2PConsumer {
               summary[report.kind].pliCount = report.pliCount;
               summary[report.kind].qpSum = report.qpSum;
             }
-            console.warn(report.type, report);
+            // console.warn(report.type, report);
             break;
-          case 'sender':
-            console.warn(report.type, report);
+          case 'media-source':
+            if (report.kind === 'video') {
+              // console.warn(report.type, report);
+              summary.video = {
+                ...summary.video,
+                videoWidth: report.width,
+                videoHeight: report.height,
+              };
+            }
             break;
           case 'receiver':
-            console.warn(report.type, report);
+            // console.warn(report.type, report);
             break;
         }
       });
-      if (Object.keys(this.statsSummary).length == 0) {
-        console.log(`there isn't stats summary`);
-      } else {
-        console.log(this.statsSummary.video);
-        console.log(summary.video);
+      if (Object.keys(this.statsSummary).length > 0) {
         if (this.statsSummary.video && summary.video) {
           const diff =
             (summary.video.timestamp - this.statsSummary.video.timestamp) /
             1000;
-          const diffBytesSent =
-            (summary.video.bytesSent - this.statsSummary.video.bytesSent) /
-            (1024 * 1024);
-          console.log('diff', diff, diffBytesSent);
+
+          let framesDecodedPerSecond = 0;
+          let framesEncodedPerSecond = 0;
+          let diffBytesSent = 0;
+          let diffBytesReceived = 0;
+
+          if (this.statsSummary.video.framesEncoded) {
+            framesEncodedPerSecond =
+              (summary.video.framesEncoded -
+                this.statsSummary.video.framesEncoded) /
+              diff;
+          }
+          if (this.statsSummary.video.framesDecoded) {
+            framesDecodedPerSecond =
+              (summary.video.framesDecoded -
+                this.statsSummary.video.framesDecoded) /
+              diff;
+          }
+          if (this.statsSummary.video.bytesSent && summary.video.bytesSent) {
+            diffBytesSent =
+              summary.video.bytesSent - this.statsSummary.video.bytesSent;
+          }
+          if (
+            this.statsSummary.video.bytesReceived &&
+            summary.video.bytesReceived
+          ) {
+            diffBytesReceived =
+              summary.video.bytesReceived -
+              this.statsSummary.video.bytesReceived;
+          }
+
           const outboundVideoBitrate = (8 * diffBytesSent) / diff;
-          summary.video['outboundVideoBitrate'] = outboundVideoBitrate;
+          const inboundVideoBitrate = (8 * diffBytesReceived) / diff;
+
+          // console.log('bitrate', outboundVideoBitrate, 'kbps');
+          summary.video['bitrateOutboundVideo'] = outboundVideoBitrate;
+          summary.video['bitrateInboundVideo'] = inboundVideoBitrate;
+          summary.video['framesEncodedPerSecond'] = framesEncodedPerSecond;
+          summary.video['framesDecodedPerSecond'] = framesDecodedPerSecond;
+        }
+        if (this.statsSummary.transport && summary.transport) {
+          const diffSeconds =
+            (summary.transport.timestamp -
+              this.statsSummary.transport.timestamp) /
+            1000;
+          let bytesSentBitrate = 0;
+          let bytesReceivedBitrate = 0;
+          if (
+            this.statsSummary.transport.bytesReceived &&
+            summary.transport.bytesReceived
+          ) {
+            bytesReceivedBitrate =
+              (8 *
+                (summary.transport.bytesReceived -
+                  this.statsSummary.transport.bytesReceived)) /
+              diffSeconds;
+          }
+          if (
+            this.statsSummary.transport.bytesSent &&
+            summary.transport.bytesSent
+          ) {
+            bytesSentBitrate =
+              (8 *
+                (summary.transport.bytesSent -
+                  this.statsSummary.transport.bytesSent)) /
+              diffSeconds;
+          }
+
+          summary.transport['bitrateSent'] = bytesSentBitrate;
+          summary.transport['bitrateReceived'] = bytesReceivedBitrate;
         }
       }
       this.statsSummary = summary;
-      console.warn('summary', summary);
+      // console.warn('summary', summary);
     });
     return;
   }
   onDestroy(): void {
     this.rtcPeerConnection.close();
-    this.remoteVideoTrack.getVideoTracks().forEach((track) => {
-      track.stop();
-    });
-    this.remoteAudioTrack.getAudioTracks().forEach((track) => {
-      track.stop();
-    });
-    this.screenStream.getVideoTracks().forEach((track) => {
-      track.stop();
-    });
+    if (this.remoteVideoTrack && this.remoteVideoTrack.readyState !== 'ended') {
+      this.remoteVideoTrack.stop();
+    }
+    if (this.remoteAudioTrack && this.remoteVideoTrack.readyState !== 'ended') {
+      this.remoteAudioTrack.stop();
+    }
   }
 }

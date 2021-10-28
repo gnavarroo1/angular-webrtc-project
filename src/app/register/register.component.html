@@ -6,7 +6,7 @@
     <form [formGroup]="form" (ngSubmit)="onSubmit()"class="example-form">
       <mat-card-content>
         <mat-form-field class="example-full-width">
-          <input matInput placeholder="First Name" formControlName="firstName" [ngClass]="{ 'is-invalid': submitted && f.firstName.errors }">
+          <input matInput placeholder="First Name" autocomplete="off" formControlName="firstName" [ngClass]="{ 'is-invalid': submitted && f.firstName.errors }">
           <div *ngIf="submitted && f.firstName.errors" class="invalid-feedback">
             <div *ngIf="f.firstName.errors.required">First Name is required</div>
             <div *ngIf="f.firstName.errors.matches">{{ f.firstName.errors.matches }}</div>
@@ -14,7 +14,7 @@
           </div>
         </mat-form-field>
         <mat-form-field class="example-full-width">
-          <input matInput placeholder="Last Name" formControlName="lastName" [ngClass]="{ 'is-invalid': submitted && f.firstName.errors }">
+          <input matInput placeholder="Last Name" autocomplete="off" formControlName="lastName" [ngClass]="{ 'is-invalid': submitted && f.firstName.errors }">
           <div *ngIf="submitted && f.lastName.errors" class="invalid-feedback">
             <div *ngIf="f.lastName.errors.required">Last Name is required</div>
             <div *ngIf="f.lastName.errors.matches">{{ f.lastName.errors.matches }}</div>
@@ -22,7 +22,7 @@
           </div>
         </mat-form-field>
         <mat-form-field class="example-full-width">
-          <input matInput placeholder="Username" formControlName="username" [ngClass]="{ 'is-invalid': submitted && f.username.errors }">
+          <input matInput placeholder="Username" autocomplete="off" formControlName="username" [ngClass]="{ 'is-invalid': submitted && f.username.errors }">
           <div *ngIf="submitted && f.username.errors" class="invalid-feedback">
             <div *ngIf="f.username.errors.required">Username is required</div>
             <div *ngIf="f.username.errors.minlength">Username must be at least 8 characters</div>
@@ -31,7 +31,7 @@
           </div>
         </mat-form-field>
         <mat-form-field class="example-full-width">
-          <input matInput placeholder="Email" formControlName="email" [ngClass]="{ 'is-invalid': submitted && f.email.errors }">
+          <input matInput type="email" placeholder="Email" autocomplete="off" formControlName="email" [ngClass]="{ 'is-invalid': submitted && f.email.errors }">
           <div *ngIf="submitted && f.email.errors" class="invalid-feedback">
             <div *ngIf="f.email.errors.required">Email is required</div>
             <div *ngIf="f.email.errors.email">Invalid email</div>

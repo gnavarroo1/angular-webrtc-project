@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { NGXLogger } from 'ngx-logger';
 import { AuthService } from '../core/services/auth.service';
 import { TokenManagerService } from '../core/services/token-manager.service';
@@ -94,7 +94,7 @@ export class WebrtcP2pComponent implements OnInit, OnDestroy {
     if (this.meetingService.meetingId) {
       this.clipboard.copyFromContent(
         window.location.origin +
-          '/meetings-sfu/join/' +
+          '/meetings/join/' +
           this.meetingService.meetingId
       );
     }
@@ -103,7 +103,7 @@ export class WebrtcP2pComponent implements OnInit, OnDestroy {
     if (this.meetingService.meetingId) {
       this.clipboard.copyFromContent(
         window.location.origin +
-          '/meetings-sfu/broadcasting/' +
+          '/meetings/broadcasting/' +
           this.meetingService.meetingId
       );
     }
@@ -186,7 +186,7 @@ export class WebrtcP2pComponent implements OnInit, OnDestroy {
     console.log(this.producerMeetingMembers);
     const members = Array.from(this.producerMeetingMembers.values());
     console.log(this.hasSFUConnection || members[0].hasSFUConnection);
-    console.log(members[0].sfuVideoStream);
+    // console.log(members[0].sfuVideoStream);
     this.meetingService.producerVideoStatus();
     console.log(members[0].videoStream);
     console.log(members[0].videoStream?.getVideoTracks());
@@ -227,6 +227,7 @@ export class WebrtcP2pComponent implements OnInit, OnDestroy {
       (item) => item.memberType === MemberType.CONSUMER
     );
   }
+
   get hasSFUConnection(): boolean {
     return this.meetingMember.connectionType === MeetingServiceType.SFU;
   }
@@ -239,6 +240,8 @@ export class WebrtcP2pComponent implements OnInit, OnDestroy {
   screenSharePermissionToggle(key: string): void {
     this.meetingService.screenSharePermissionToggle(key);
   }
+
+  @HostListener('unloaded')
   ngOnDestroy(): void {
     this.subscriptions.forEach((sub) => {
       sub.unsubscribe();

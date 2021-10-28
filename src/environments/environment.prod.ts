@@ -6,9 +6,8 @@ import * as uuid from 'uuid';
 
 export const environment = {
   development: false,
-  user_id: uuid.v4(),
   production: false,
-  name: 'development',
+  name: 'production',
   token: {
     authHeaderKey: 'Authorization',
   },
@@ -118,7 +117,7 @@ export const environment = {
 
   mediasoupWssUrl: 'wss://dev.pry2021153.tech:8099',
   mediaSoupApiUrl: 'https://dev.pry2021153.tech:8099/',
-  signalingWssUrl: 'ws://127.0.0.1:5000',
+  signalingWssUrl: 'wss://signaling.pry2021153.tech:8000',
   platformApiUrl: 'https://api-webrtc.pry2021153.tech:3000/api/',
   platformWssUrls: {
     meetingEvents: 'wss://api-webrtc.pry2021153.tech:3000/meeting-events',
