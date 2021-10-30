@@ -1,6 +1,6 @@
 import { CUSTOM_ELEMENTS_SCHEMA, NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-import { AngularMaterialModule } from './angular-material.module';
+import { SharedModule } from './shared/shared.module';
 import { AppComponent } from './app.component';
 import { LoggerModule, NgxLoggerLevel } from 'ngx-logger';
 import { HttpClientModule } from '@angular/common/http';
@@ -8,26 +8,31 @@ import { SocketIoModule } from 'ngx-socket-io';
 import { environment } from '../environments/environment';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { FlexLayoutModule } from '@angular/flex-layout';
+import { FlexModule } from '@angular/flex-layout/flex';
+import { GridModule } from '@angular/flex-layout/grid';
+
 import { LayoutModule } from '@angular/cdk/layout';
 import { ClipboardModule } from 'ngx-clipboard';
 import { AppRoutingModule } from './app-routing.module';
-import { interceptorProviders } from './core/interceptors/token.interceptor';
+import { interceptorProviders } from './shared/interceptors/token.interceptor';
 import { JWT_OPTIONS, JwtModule } from '@auth0/angular-jwt';
-import { HomeComponent } from './home/home.component';
-import { WebrtcP2pComponent } from './webrtc-p2p/webrtc-p2p.component';
-import { WebrtcSfuComponent } from './webrtc-sfu/webrtc-sfu.component';
-import { MeetingService } from './services/meeting.service';
-import { P2pWebrtcService } from './services/p2p-connection/p2p-webrtc.service';
-import { MeetingDataService } from './services/meeting-data.service';
-import { SfuWebrtcService } from './services/mediasoup-connection/mediasoup.service';
+import { HomeComponent } from './meetings/pages/home/home.component';
+import { WebrtcP2pComponent } from './meetings/pages/webrtc-p2p/webrtc-p2p.component';
+import { MeetingService } from './meetings/services/meeting.service';
+import { P2pWebrtcService } from './meetings/services/p2p-connection/p2p-webrtc.service';
+import { MeetingDataService } from './meetings/services/meeting-data.service';
+import { SfuWebrtcService } from './meetings/services/mediasoup-connection/mediasoup.service';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { LoginComponent } from './login/login.component';
-import { RegisterComponent } from './register/register.component';
-import { P404Component } from './views/p404/p404.component';
-import { ErrorPageComponent } from './views/p500/error-page.component';
-import { AuthGuard } from './core/guards/auth.guard';
-import { SecurityService } from './services/security/security.service';
-import { LoggedInAuthGuard } from './core/guards/logged-in-auth.guard';
+import { LoginComponent } from './auth/pages/login/login.component';
+import { RegisterComponent } from './auth/pages/register/register.component';
+import { P404Component } from './shared/pages/not-found/p404.component';
+import { ErrorPageComponent } from './shared/pages/error-page/error-page.component';
+import { AuthGuard } from './shared/guards/auth.guard';
+import { SecurityService } from './auth/services/security.service';
+import { LoggedInAuthGuard } from './shared/guards/logged-in-auth.guard';
+import { ResetPasswordComponent } from './auth/pages/reset-password/reset-password.component';
+import { VerifyEmailComponent } from './auth/pages/verify-email/verify-email.component';
+import { ForgotPasswordComponent } from './auth/pages/forgot-password/forgot-password.component';
 
 export function jwtOptionsFactory() {
   return {
@@ -44,17 +49,21 @@ export function jwtOptionsFactory() {
     AppComponent,
     HomeComponent,
     WebrtcP2pComponent,
-    WebrtcSfuComponent,
     LoginComponent,
     RegisterComponent,
     P404Component,
     ErrorPageComponent,
+    ResetPasswordComponent,
+    VerifyEmailComponent,
+    ForgotPasswordComponent,
   ],
   imports: [
     BrowserModule,
     FlexLayoutModule,
+    GridModule,
+    FlexModule,
     BrowserAnimationsModule,
-    AngularMaterialModule,
+    SharedModule,
     AppRoutingModule,
     ClipboardModule,
     HttpClientModule,

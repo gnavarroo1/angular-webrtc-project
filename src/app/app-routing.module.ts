@@ -1,16 +1,20 @@
 import { NgModule } from '@angular/core';
 import { Router, RouterModule, Routes } from '@angular/router';
-import { MemberType } from './types/defines';
-import { WebrtcP2pComponent } from './webrtc-p2p/webrtc-p2p.component';
-import { WebrtcSfuComponent } from './webrtc-sfu/webrtc-sfu.component';
-import { HomeComponent } from './home/home.component';
-import { LoginComponent } from './login/login.component';
-import { RegisterComponent } from './register/register.component';
-import { AuthGuard } from './core/guards/auth.guard';
-import { LoggedInAuthGuard } from './core/guards/logged-in-auth.guard';
-import { P404Component } from './views/p404/p404.component';
-import { ErrorPageComponent } from './views/p500/error-page.component';
-
+import { WebrtcP2pComponent } from './meetings/pages/webrtc-p2p/webrtc-p2p.component';
+import { HomeComponent } from './meetings/pages/home/home.component';
+import { LoginComponent } from './auth/pages/login/login.component';
+import { RegisterComponent } from './auth/pages/register/register.component';
+import { AuthGuard } from './shared/guards/auth.guard';
+import { LoggedInAuthGuard } from './shared/guards/logged-in-auth.guard';
+import { P404Component } from './shared/pages/not-found/p404.component';
+import { ErrorPageComponent } from './shared/pages/error-page/error-page.component';
+import { ResetPasswordComponent } from './auth/pages/reset-password/reset-password.component';
+import { ForgotPasswordComponent } from './auth/pages/forgot-password/forgot-password.component';
+import { VerifyEmailComponent } from './auth/pages/verify-email/verify-email.component';
+export enum MemberType {
+  PRODUCER = 'PRODUCER',
+  CONSUMER = 'CONSUMER',
+}
 const routes: Routes = [
   {
     path: 'login',
@@ -30,19 +34,7 @@ const routes: Routes = [
   {
     path: 'meetings/join/:id',
     component: WebrtcP2pComponent,
-    data: { memberType: MemberType.BOTH },
-    canActivate: [AuthGuard],
-  },
-  {
-    path: 'meetings-sfu',
-    component: WebrtcSfuComponent,
-    data: { memberType: MemberType.BOTH },
-    canActivate: [AuthGuard],
-  },
-  {
-    path: 'meetings-sfu/join/:id',
-    component: WebrtcSfuComponent,
-    data: { memberType: MemberType.BOTH },
+    data: { memberType: MemberType.PRODUCER },
     canActivate: [AuthGuard],
   },
   {
@@ -50,6 +42,18 @@ const routes: Routes = [
     component: WebrtcP2pComponent,
     data: { memberType: MemberType.CONSUMER },
     canActivate: [AuthGuard],
+  },
+  {
+    path: 'reset-password',
+    component: ResetPasswordComponent,
+  },
+  {
+    path: 'forgot-password',
+    component: ForgotPasswordComponent,
+  },
+  {
+    path: 'verify-email',
+    component: VerifyEmailComponent,
   },
   {
     path: '404',
@@ -68,6 +72,7 @@ const routes: Routes = [
 export class AppRoutingModule {
   constructor(private router: Router) {
     this.router.errorHandler = (error: any) => {
+      console.warn(error);
       this.router.navigate(['404']); // or redirect to default route
     };
   }

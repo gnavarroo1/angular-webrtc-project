@@ -1,0 +1,23 @@
+
+<div class="login-wrapper" fxLayout="row" fxLayoutAlign="center center">
+  <mat-card class="box">
+    <mat-card-header>
+      <mat-card-title>Verify Email</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div *ngIf="emailStatus === EmailStatus.Verifying">
+        Verifying...
+      </div>
+      <div *ngIf="emailStatus === EmailStatus.Failed">
+        Verification failed, you can also verify your account using the <a [routerLink]="['/forgot-password']">forgot password</a> page.
+      </div>
+      <div *ngIf="emailStatus === EmailStatus.Expired">
+        Verification failed, invalid or expired link.You can also verify your account using the <a [routerLink]="['/forgot-password']">forgot password</a> page.
+      </div>
+      <div *ngIf="emailStatus === EmailStatus.Success">
+        Verification successful, you can now <a [routerLink]="['/login']">login</a>.
+      </div>
+
+    </mat-card-content>
+  </mat-card>
+</div>

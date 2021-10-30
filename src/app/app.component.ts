@@ -1,9 +1,9 @@
 import { Component } from '@angular/core';
-import { AuthService } from './core/services/auth.service';
-import { TokenManagerService } from './core/services/token-manager.service';
+import { AuthService } from './shared/services/auth.service';
+import { TokenManagerService } from './shared/services/token-manager.service';
 import { ActivatedRoute, Router } from '@angular/router';
-import { first } from 'rxjs/operators';
-
+import { MatIconRegistry } from '@angular/material/icon';
+import { DomSanitizer } from '@angular/platform-browser';
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
