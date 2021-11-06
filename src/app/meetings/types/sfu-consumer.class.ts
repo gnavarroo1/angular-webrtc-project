@@ -54,84 +54,79 @@ export class SfuConsumer {
   async getStats(): Promise<void> {
     const summary: Record<string, any> = {};
     if (this.consumerVideo) {
-      const stats = await this.consumerVideo.getStats();
-      stats.forEach((report) => {
-        switch (report.type as RTCStatsType) {
-          case 'inbound-rtp':
-            // console.warn(report.type, report);
-            summary.video = {
-              ...summary[report.mediaType],
-              bytesReceived: report.bytesReceived,
-              framesDecoded: report.framesDecoded,
-              frameHeight: report.frameHeight,
-              frameWidth: report.frameWidth,
-              jitter: report.jitter,
-              timestamp: report.timestamp,
-            };
-            break;
-          case 'track':
-            // console.warn(report.type, report);
-            break;
-        }
-      });
-    }
-    if (this.consumerAudio) {
-      const stats = await this.consumerAudio.getStats();
-      stats.forEach((report) => {
-        switch (report.type as RTCStatsType) {
-          case 'inbound-rtp':
-            summary.video = {
-              ...summary[report.mediaType],
-              bytesReceived: report.bytesReceived,
-              jitter: report.jitter,
-              timestamp: report.timestamp,
-            };
-            break;
-          case 'track':
-            // console.warn(report.type, report);
-            break;
-        }
-      });
-    }
-    if (Object.keys(this.statsSummary).length > 0) {
-      if (this.statsSummary.video && summary.video) {
-        //dif time in seconds
-        const diff =
-          (summary.video.timestamp - this.statsSummary.video.timestamp) / 1000;
-        let diffBytesReceived = 0;
-        let framesDecodedPerSecond = 0;
-        if (
-          this.statsSummary.video.bytesReceived &&
-          summary.video.bytesReceived
-        ) {
-          diffBytesReceived =
-            summary.video.bytesReceived - this.statsSummary.video.bytesReceived;
-        }
-        if (this.statsSummary.video.framesDecoded) {
-          framesDecodedPerSecond =
-            (summary.video.framesDecoded -
-              this.statsSummary.video.framesDecoded) /
-            diff;
-        }
-        summary.video['bitrateVideoReceived'] = (8 * diffBytesReceived) / diff;
-        summary.video['framesDecodedPerSecond'] = framesDecodedPerSecond;
-      }
-      if (this.statsSummary.audio && summary.audio) {
-        //dif time in seconds
-        const diff =
-          (summary.audio.timestamp - this.statsSummary.audio.timestamp) / 1000;
-        let diffBytesReceived = 0;
-        if (
-          this.statsSummary.audio.bytesReceived &&
-          summary.audio.bytesReceived
-        ) {
-          diffBytesReceived =
-            summary.audio.bytesReceived - this.statsSummary.audio.bytesReceived;
-        }
-        summary.video['bitrateAudioReceived'] = (8 * diffBytesReceived) / diff;
-      }
+      await Promise.all([
+        this.consumerVideo.getStats(),
+        this.consumerAudio?.getStats(),
+      ])
+        .then((stats) => {
+          const videoStats = stats[0];
+          const audioStats = stats[1];
+          if (videoStats) {
+            videoStats.forEach((report) => {
+              switch (report.type as RTCStatsType) {
+                case 'inbound-rtp':
+                  summary.video = {
+                    ...summary[report.mediaType],
+                    packetsReceived: report.packetsReceived,
+                    packetsLost: report.packetsLost,
+                    framesReceived: report.framesReceived,
+                    bytesReceived: report.bytesReceived,
+                    framesDecoded: report.framesDecoded,
+                    pliCountInbound: report.pliCount,
+                    qpSumInbound: report.qpSum,
+                    firCountInbound: report.firCount,
+                    nackCountInbound: report.nackCount,
+                    jitter: report.jitter,
+                    timestamp: report.timestamp,
+                  };
+                  break;
+                case 'transport':
+                  // console.warn('transport', report);
+                  summary.video.transport = {
+                    bytesSent: report.bytesSent,
+                    bytesReceived: report.bytesReceived,
+                    packetsSent: report.packetsSent,
+                    packetsReceived: report.packetsReceived,
+                    timestamp: report.timestamp,
+                  };
+                  break;
+              }
+            });
+          }
+          if (audioStats) {
+            audioStats.forEach((report) => {
+              switch (report.type as RTCStatsType) {
+                case 'inbound-rtp':
+                  summary.audio = {
+                    ...summary[report.mediaType],
+                    packetsReceived: report.packetsReceived,
+                    packetsLost: report.packetsLost,
+                    bytesReceived: report.bytesReceived,
+                    nackCountInbound: report.nackCount,
+                    jitter: report.jitter,
+                    timestamp: report.timestamp,
+                  };
+                  break;
+                case 'transport':
+                  // console.warn('transport', report);
+                  summary.audio.transport = {
+                    bytesSent: report.bytesSent,
+                    bytesReceived: report.bytesReceived,
+                    packetsSent: report.packetsSent,
+                    packetsReceived: report.packetsReceived,
+                    timestamp: report.timestamp,
+                  };
+                  break;
+              }
+            });
+          }
+        })
+        .catch((err) => {
+          console.error(err);
+        });
     }
     this.statsSummary = summary;
+
     return;
   }
 }

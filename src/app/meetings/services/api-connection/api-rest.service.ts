@@ -77,4 +77,12 @@ export class ApiRestService {
       userId: userId,
     });
   }
+
+  addSnapshot(data: any): Observable<any> {
+    const url = (
+      environment.apiServer.api.url +
+      environment.apiServer.api.methods.addSnapshot
+    ).replace(':meetingId', data.meetingId);
+    return this.http.post(url, data);
+  }
 }

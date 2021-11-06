@@ -183,8 +183,8 @@
                   <div class="member-card" [ngClass]="memberCardClass" >
                     <div class="peer-card" data-component="Peer">
                       <div class="indicators">
-                        <div [ngClass]="{'icon': true,'mic-off':true }" ></div>
-                        <div [ngClass]="{'icon': true,'webcam-off':true}" ></div>
+                        <div [ngClass]="{'icon': true,'mic-off': !(peer.value.produceAudioEnabled && peer.value.produceAudioAllowed) }" ></div>
+                        <div [ngClass]="{'icon': true,'webcam-off': !(peer.value.produceVideoEnabled && peer.value.produceVideoAllowed)}" ></div>
                       </div>
                       <div data-component="PeerView">
                         <div class="info">
@@ -210,7 +210,7 @@
             </div>
           </div>
         </div>
-        <div fxLayoutAlign="center center" class="controls-panel" *ngIf="meetingMember">
+        <div fxLayoutAlign="center center" class="controls-panel" *ngIf="meetingMember && isMeetingReady">
           <div class="example-button-container">
             <button mat-fab (click)="toggleAudio()" [ngClass]="!meetingMember.produceAudioEnabled?'button-warn':'button-white'">
               <mat-icon [svgIcon]="!meetingMember.produceAudioEnabled?'svg-mic-off':'svg-mic-on'">

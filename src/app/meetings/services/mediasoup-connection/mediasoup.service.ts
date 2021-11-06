@@ -4,14 +4,19 @@ import { Injectable } from '@angular/core';
 import { environment } from '../../../../environments/environment';
 import { WssService } from './wss.service';
 import {
+  AudioConsumerStats,
+  ConsumerStatsSnapshot,
   IMemberIdentifier,
   IPeerStat,
   MeetingMemberDto,
   MeetingServiceType,
   MemberType,
+  ProducerStatsSnapshot,
+  SfuStatsSnapshot,
   TKind,
   TPeer,
   TState,
+  VideoConsumerStats,
 } from '../../types/defines';
 import { BehaviorSubject, Observable, Subscription } from 'rxjs';
 import { NGXLogger } from 'ngx-logger';
@@ -111,12 +116,12 @@ export class SfuWebrtcService {
   private _producerScreenMedia: Producer | undefined;
   private _producerVideo: Producer | undefined;
   private _producerAudio: Producer | undefined;
-  private _statsSummary: Record<string, any> = {};
+  private _statsSummary: SfuStatsSnapshot = {};
 
-  get statsSummary(): Record<string, any> {
+  get statsSummary(): SfuStatsSnapshot {
     return this._statsSummary;
   }
-  set statsSummary(value: Record<string, any>) {
+  set statsSummary(value: SfuStatsSnapshot) {
     this._statsSummary = value;
   }
   initWssService(): void {
@@ -357,7 +362,7 @@ export class SfuWebrtcService {
       const onMediaProducerPause$ = this.wssService
         .onMediaProducerPause()
         .subscribe(async (data: any) => {
-          console.log('mediaProducerResume', data);
+          console.log('mediaProducerPause', data);
           const consumer = this.meetingDataService.meetingMembers.get(
             data.userId
           );
@@ -396,12 +401,35 @@ export class SfuWebrtcService {
             if (media) {
               if (
                 member.remoteConnectionType === MeetingServiceType.SFU ||
-                this.localMeetingMember.connectionType ===
-                  MeetingServiceType.SFU
+                member.localConnectionType === MeetingServiceType.SFU
               ) {
-                member.videoStream = new MediaStream([media.track]);
+                media.resume();
+                if (data.mediaTag === 'video') {
+                  const currentVideoTrack =
+                    member.videoStream?.getVideoTracks()[0];
+                  if (
+                    !(
+                      currentVideoTrack &&
+                      currentVideoTrack.id === media.track.id
+                    )
+                  ) {
+                    member.videoStream = new MediaStream([media.track]);
+                  }
+                } else {
+                  console.warn('sfu audio track', media.track);
+                  const currentAudioTrack =
+                    member.audioStream?.getAudioTracks()[0];
+                  if (
+                    !(
+                      currentAudioTrack &&
+                      currentAudioTrack.id === media.track.id
+                    )
+                  ) {
+                    member.audioStream = new MediaStream([media.track]);
+                  }
+                  console.warn('sfu audio stream', member.audioStream);
+                }
               }
-              media.resume();
             }
           }
         });
@@ -1665,138 +1693,210 @@ export class SfuWebrtcService {
   // }
 
   async getStats() {
-    const summary: Record<string, any> = {};
-    const producerVideoStats = await this.wssService.requestMedia({
-      action: 'getProducerStats',
-      data: {
-        userId: this.meetingDataService.meetingMember._id,
-        kind: 'video',
-      },
-    });
-    const producerAudioStats = await this.wssService.requestMedia({
-      action: 'getProducerStats',
-      data: {
-        userId: this.meetingDataService.meetingMember._id,
-        kind: 'audio',
-      },
-    });
-    const consumerStatsArray = new Map<string, any>();
-    const producerTransportStats = await this.producerTransport.getStats();
-    producerTransportStats.forEach((result) => {
-      if (result.type === 'transport') {
-        summary.transport = {
-          ...summary.transport,
-          producer: {
+    // const producerVideoStats = await this.wssService.requestMedia({
+    //   action: 'getProducerStats',
+    //   data: {
+    //     userId: this.meetingDataService.meetingMember._id,
+    //     kind: 'video',
+    //   },
+    // });
+    // const producerAudioStats = await this.wssService.requestMedia({
+    //   action: 'getProducerStats',
+    //   data: {
+    //     userId: this.meetingDataService.meetingMember._id,
+    //     kind: 'audio',
+    //   },
+    // });
+    // const consumerStatsArray = new Map<string, any>();
+    // const producerTransportStats = await this.producerTransport.getStats();
+    // producerTransportStats.forEach((result) => {
+    //   if (result.type === 'transport') {
+    //     summary.transport = {
+    //       ...summary.transport,
+    //       producer: {
+    //         bytesSent: result.bytesSent,
+    //         bytesReceived: result.bytesReceived,
+    //         packetsSent: result.packetsSent,
+    //         packetsReceived: result.packetsReceived,
+    //         timestamp: result.timestamp,
+    //       },
+    //     };
+    //   }
+    // });
+    // const consumerTransportStats = await
+    // consumerTransportStats.forEach((result) => {
+    //   if (result.type === 'transport') {
+    //     summary.transport = {
+    //       ...summary.transport,
+    //       consumer: {
+    //         bytesSent: result.bytesSent,
+    //         bytesReceived: result.bytesReceived,
+    //         packetsSent: result.packetsSent,
+    //         packetsReceived: result.packetsReceived,
+    //         timestamp: result.timestamp,
+    //       },
+    //     };
+    //   }
+    // });
+    await Promise.all([
+      this.wssService.requestMedia({
+        action: 'getProducerStats',
+        data: {
+          userId: this.meetingDataService.meetingMember._id,
+          kind: 'video',
+        },
+      }),
+      this.wssService.requestMedia({
+        action: 'getProducerStats',
+        data: {
+          userId: this.meetingDataService.meetingMember._id,
+          kind: 'audio',
+        },
+      }),
+      this.producerTransport?.getStats(),
+      this.consumerTransport?.getStats(),
+    ]).then(async (result) => {
+      const producerVideoStats = result[0];
+      const producerAudioStats = result[1];
+      const producerTransportStats = result[2];
+      const consumerTransportStats = result[3];
+
+      const producerStatsSnapshot: ProducerStatsSnapshot = {};
+      const consumerStatsSnapshot: ConsumerStatsSnapshot = {
+        video: new Map<string, VideoConsumerStats>(),
+        audio: new Map<string, AudioConsumerStats>(),
+      };
+      producerTransportStats.forEach((result) => {
+        if (result.type === 'transport') {
+          producerStatsSnapshot.transport = {
             bytesSent: result.bytesSent,
             bytesReceived: result.bytesReceived,
             packetsSent: result.packetsSent,
             packetsReceived: result.packetsReceived,
             timestamp: result.timestamp,
-          },
-        };
-      }
-    });
-    const consumerTransportStats = await this.consumerTransport.getStats();
-    consumerTransportStats.forEach((result) => {
-      if (result.type === 'transport') {
-        summary.transport = {
-          ...summary.transport,
-          consumer: {
+          };
+        }
+      });
+      consumerTransportStats.forEach((result) => {
+        if (result.type === 'transport') {
+          consumerStatsSnapshot.transport = {
             bytesSent: result.bytesSent,
             bytesReceived: result.bytesReceived,
             packetsSent: result.packetsSent,
             packetsReceived: result.packetsReceived,
             timestamp: result.timestamp,
-          },
+          };
+        }
+      });
+      const videoStats = producerVideoStats.stats;
+      const audioStats = producerAudioStats.stats;
+      if (videoStats.length > 0) {
+        let bitrate = 0;
+        let firCount = 0;
+        let jitter = 0;
+        let pliCount = 0;
+        let nackCount = 0;
+        let packetsLost = 0;
+        let packetCount = 0;
+        let byteCount = 0;
+        let timestamp = 0;
+        videoStats.forEach((stat: IPeerStat) => {
+          timestamp = stat.timestamp;
+          if (stat.bitrate) {
+            bitrate += stat.bitrate;
+          }
+          if (stat.firCount) {
+            firCount += stat.firCount;
+          }
+          if (stat.pliCount) {
+            pliCount += stat.pliCount;
+          }
+          if (stat.jitter) {
+            jitter += stat.jitter;
+          }
+          if (stat.packetsLost) {
+            packetsLost += stat.packetsLost;
+          }
+          if (stat.packetCount) {
+            packetCount += stat.packetCount;
+          }
+          if (stat.byteCount) {
+            byteCount += stat.byteCount;
+          }
+          if (stat.nackCount) {
+            nackCount += stat.nackCount;
+          }
+        });
+        producerStatsSnapshot.video = {
+          ...producerStatsSnapshot.video,
+          bitrate: bitrate,
+          firCount: firCount,
+          pliCount: pliCount,
+          jitter: jitter,
+          packetCount: packetCount,
+          packetsLost: packetsLost,
+          byteCount: byteCount,
+          nackCount: nackCount,
+          timestamp: timestamp,
+        };
+
+        // summary.video = {
+        //   ...summary.video,
+        //   bitrate: bitrate,
+        //   firCount: firCount,
+        //   pliCount: pliCount,
+        //   jitter: jitter,
+        //   packetCount: packetCount,
+        //   packetsLost: packetsLost,
+        //   byteCount: byteCount,
+        //   nackCount: nackCount,
+        //   timestamp: timestamp,
+        // };
+      }
+      if (audioStats.length > 0) {
+        let bitrate = 0;
+        let packetsLost = 0;
+        let packetCount = 0;
+        let byteCount = 0;
+        let jitter = 0;
+        let timestamp = 0;
+        let nackCount = 0;
+        audioStats.forEach((stat: IPeerStat) => {
+          timestamp = stat.timestamp;
+          if (stat.bitrate) {
+            bitrate += stat.bitrate;
+          }
+          if (stat.packetsLost) {
+            packetsLost += stat.packetsLost;
+          }
+          if (stat.packetCount) {
+            packetCount += stat.packetCount;
+          }
+          if (stat.byteCount) {
+            byteCount += stat.byteCount;
+          }
+          if (stat.jitter) {
+            jitter += stat.jitter;
+          }
+          if (stat.nackCount) {
+            nackCount += stat.nackCount;
+          }
+        });
+        producerStatsSnapshot.audio = {
+          bitrate: bitrate,
+          packetCount: packetCount,
+          packetsLost: packetsLost,
+          byteCount: byteCount,
+          jitter: jitter,
+          nackCount: nackCount,
+          timestamp: timestamp,
         };
       }
+      this.statsSummary = {
+        producer: producerStatsSnapshot,
+        consumer: consumerStatsSnapshot,
+      };
     });
-    const videoStats = producerVideoStats.stats;
-    const audioStats = producerAudioStats.stats;
-    if (videoStats.length > 0) {
-      let bitrate = 0;
-      let firCount = 0;
-      let jitter = 0;
-      let pliCount = 0;
-      videoStats.forEach((stat: IPeerStat) => {
-        if (stat.bitrate) {
-          bitrate += stat.bitrate;
-        }
-        if (stat.firCount) {
-          firCount += stat.firCount;
-        }
-        if (stat.pliCount) {
-          pliCount += stat.pliCount;
-        }
-        if (stat.jitter) {
-          jitter += stat.jitter;
-        }
-      });
-      summary.video = {
-        ...summary.video,
-        bitrate: bitrate,
-        firCount: firCount,
-        pliCount: pliCount,
-        jitter: jitter,
-      };
-    }
-    if (audioStats.length > 0) {
-      let bitrate = 0;
-      audioStats.forEach((stat: IPeerStat) => {
-        if (stat.bitrate) {
-          bitrate += stat.bitrate;
-        }
-      });
-      summary.audio = {
-        bitrate: bitrate,
-      };
-    }
-    if (this.statsSummary.transport && summary.transport) {
-      if (this.statsSummary.transport.producer && summary.transport.producer) {
-        const previousProducerStat = this.statsSummary.transport.producer;
-        const currentProducerStat = summary.transport.producer;
-
-        const producerBitrateSent =
-          (8 *
-            (currentProducerStat.bytesSent - previousProducerStat.bytesSent)) /
-          ((currentProducerStat.timestamp - previousProducerStat.timestamp) /
-            1000);
-        const producerBitrateReceived =
-          (8 *
-            (currentProducerStat.bytesReceived -
-              previousProducerStat.bytesReceived)) /
-          ((currentProducerStat.timestamp - previousProducerStat.timestamp) /
-            1000);
-
-        summary.transport.producer = {
-          ...summary.transport.producer,
-          bitrateSent: producerBitrateSent,
-          bitrateReceived: producerBitrateReceived,
-        };
-      }
-      if (this.statsSummary.transport.consumer && summary.transport.consumer) {
-        const previousConsumerStat = this.statsSummary.transport.consumer;
-        const currentConsumerStat = summary.transport.consumer;
-        const consumerBitrateSent =
-          (8 *
-            (currentConsumerStat.bytesSent - previousConsumerStat.bytesSent)) /
-          ((currentConsumerStat.timestamp - previousConsumerStat.timestamp) /
-            1000);
-        const consumerBitrateReceived =
-          (8 *
-            (currentConsumerStat.bytesReceived -
-              previousConsumerStat.bytesReceived)) /
-          ((currentConsumerStat.timestamp - previousConsumerStat.timestamp) /
-            1000);
-        summary.transport.consumer = {
-          ...summary.transport.consumer,
-          bitrateSent: consumerBitrateSent,
-          bitrateReceived: consumerBitrateReceived,
-        };
-      }
-    }
-    this.statsSummary = summary;
-
     return;
   }
 }

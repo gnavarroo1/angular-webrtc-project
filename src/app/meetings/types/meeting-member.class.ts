@@ -1,6 +1,7 @@
 import { MeetingServiceType, MemberType } from './defines';
 import { P2PConsumer } from './p2p-consumer.class';
 import { SfuConsumer } from './sfu-consumer.class';
+import * as EventEmitter from 'events';
 
 export class MeetingMember {
   //Getter and Setters
@@ -151,6 +152,13 @@ export class MeetingMember {
   private _sfuConsumerConnection!: SfuConsumer;
   private _videoStream: MediaStream | undefined | null;
   private _audioStream: MediaStream | undefined | null;
+
+  private _eventEmitter: EventEmitter = new EventEmitter();
+
+  get eventEmitter(): EventEmitter {
+    return this._eventEmitter;
+  }
+
   constructor(meetingMember: {
     _id: string;
     userId: string;
@@ -197,6 +205,7 @@ export class MeetingMember {
       this.p2pConsumerConnection.remoteVideoTrack
     );
     console.warn('currentvideoTrack', this.videoStream?.getVideoTracks()[0]);
+    console.warn('currentaudioTrack', this.audioStream?.getAudioTracks()[0]);
     switch (to) {
       case MeetingServiceType.SFU:
         if (
@@ -207,14 +216,17 @@ export class MeetingMember {
             this.sfuConsumerConnection.consumerVideo.track,
           ]);
         }
+        this.emitVideoStreamChange();
         if (
           this.sfuConsumerConnection.consumerAudio &&
           this.produceAudioEnabled
         ) {
+          console.log('change audio stream');
           this.audioStream = new MediaStream([
             this.sfuConsumerConnection.consumerAudio.track,
           ]);
         }
+        this.emitAudioStreamChange();
         break;
       case MeetingServiceType.MESH:
         if (
@@ -225,6 +237,7 @@ export class MeetingMember {
             this.p2pConsumerConnection.remoteVideoTrack,
           ]);
         }
+        this.emitVideoStreamChange();
         if (
           this.p2pConsumerConnection.remoteAudioTrack &&
           this.produceAudioEnabled
@@ -233,6 +246,7 @@ export class MeetingMember {
             this.p2pConsumerConnection.remoteAudioTrack,
           ]);
         }
+        this.emitAudioStreamChange();
         break;
     }
     this.remoteConnectionType = to;
@@ -252,44 +266,72 @@ export class MeetingMember {
       this.p2pConsumerConnection.remoteVideoTrack
     );
     console.warn('currentvideoTrack', this.videoStream?.getVideoTracks()[0]);
+    console.warn('currentaudioTrack', this.audioStream?.getAudioTracks()[0]);
     switch (to) {
       case MeetingServiceType.SFU:
         if (
           this.sfuConsumerConnection.consumerVideo &&
           this.produceVideoEnabled
         ) {
+          console.log('change video track sfu');
           this.videoStream = new MediaStream([
             this.sfuConsumerConnection.consumerVideo.track,
           ]);
         }
+        this.emitVideoStreamChange();
         if (
           this.sfuConsumerConnection.consumerAudio &&
           this.produceAudioEnabled
         ) {
-          this.audioStream = new MediaStream([
-            this.sfuConsumerConnection.consumerAudio.track,
-          ]);
+          const currenAudioTrack = this.audioStream?.getAudioTracks()[0];
+          if (
+            !(
+              currenAudioTrack &&
+              currenAudioTrack.id ===
+                this.sfuConsumerConnection.consumerAudio.track.id
+            )
+          ) {
+            this.audioStream = new MediaStream([
+              this.sfuConsumerConnection.consumerAudio.track,
+            ]);
+          }
+
+          console.log('change to sfu audiotrack');
         }
+        this.emitAudioStreamChange();
         break;
       case MeetingServiceType.MESH:
         if (
           this.p2pConsumerConnection.remoteVideoTrack &&
           this.produceVideoEnabled
         ) {
+          console.log('change video track p2p');
           this.videoStream = new MediaStream([
             this.p2pConsumerConnection.remoteVideoTrack,
           ]);
         }
+        this.emitVideoStreamChange();
         if (
           this.p2pConsumerConnection.remoteAudioTrack &&
           this.produceAudioEnabled
         ) {
+          console.log('change audio track p2p');
           this.audioStream = new MediaStream([
             this.p2pConsumerConnection.remoteAudioTrack,
           ]);
+          console.log('change to rtc audio track');
         }
+        this.emitAudioStreamChange();
         break;
     }
     this.localConnectionType = to;
+  }
+
+  emitAudioStreamChange() {
+    this._eventEmitter.emit('audioStreamChange');
+  }
+
+  emitVideoStreamChange() {
+    this._eventEmitter.emit('videoStreamChange');
   }
 }

@@ -150,29 +150,26 @@ export class P2PConsumer {
               timestamp: report.timestamp,
             };
             break;
-          case 'remote-inbound-rtp':
-            // console.warn(report.type, report);
-            summary[report.kind] = {
-              ...summary[report.kind],
-              send: {
-                fractionLost: report.fractionLost,
-                jitter: report.jitter,
-                packetsLost: report.packetsLost,
-                timestamp: report.timestamp,
-              },
-            };
-
-            break;
           case 'inbound-rtp':
             // console.warn(report.type, report);
+            if (report.mediaType === 'video') {
+              summary[report.mediaType] = {
+                ...summary[report.mediaType],
+                framesReceived: report.framesReceived,
+                framesDecoded: report.framesDecoded,
+                pliCountInbound: report.pliCount,
+                qpSumInbound: report.qpSum,
+                firCountInbound: report.firCount,
+              };
+            }
             summary[report.mediaType] = {
               ...summary[report.mediaType],
+              packetsReceived: report.packetsReceived,
+              packetsLost: report.packetsLost,
               bytesReceived: report.bytesReceived,
-              framesDecoded: report.framesDecoded,
-              frameHeight: report.frameHeight,
-              frameWidth: report.frameWidth,
               jitter: report.jitter,
               timestamp: report.timestamp,
+              nackCountInbound: report.nackCount,
             };
             break;
           case 'outbound-rtp':
@@ -181,112 +178,102 @@ export class P2PConsumer {
               ...summary[report.kind],
               bytesSent: report.bytesSent,
               packetsSent: report.packetsSent,
-              qualityLimitationReason: report.qualityLimitationReason,
-              framesEncoded: report.framesEncoded,
-              frameHeight: report.frameHeight,
-              frameWidth: report.frameWidth,
-              totalEncodedTime: report.totalEncodedTime,
+              nackCountOutbound: report.nackCount,
               timestamp: report.timestamp,
             };
             if (report.kind === 'video') {
-              summary[report.kind].firCount = report.firCount;
-              summary[report.kind].pliCount = report.pliCount;
-              summary[report.kind].qpSum = report.qpSum;
-            }
-            // console.warn(report.type, report);
-            break;
-          case 'media-source':
-            if (report.kind === 'video') {
-              // console.warn(report.type, report);
-              summary.video = {
-                ...summary.video,
-                videoWidth: report.width,
-                videoHeight: report.height,
+              summary[report.kind] = {
+                ...summary[report.kind],
+                qualityLimitationReason: report.qualityLimitationReason,
+                pliCountOutbound: report.pliCount,
+                qpSumOutbound: report.qpSum,
+                firCountOutbound: report.firCount,
+                framesSent: report.framesSent,
+                framesEncoded: report.framesEncoded,
               };
             }
             break;
-          case 'receiver':
-            // console.warn(report.type, report);
-            break;
         }
       });
-      if (Object.keys(this.statsSummary).length > 0) {
-        if (this.statsSummary.video && summary.video) {
-          const diff =
-            (summary.video.timestamp - this.statsSummary.video.timestamp) /
-            1000;
 
-          let framesDecodedPerSecond = 0;
-          let framesEncodedPerSecond = 0;
-          let diffBytesSent = 0;
-          let diffBytesReceived = 0;
+      // if (Object.keys(this.statsSummary).length > 0) {
+      //   if (this.statsSummary.video && summary.video) {
+      //     const diff =
+      //       (summary.video.timestamp - this.statsSummary.video.timestamp) /
+      //       1000;
+      //
+      //     let framesDecodedPerSecond = 0;
+      //     let framesEncodedPerSecond = 0;
+      //     let diffBytesSent = 0;
+      //     let diffBytesReceived = 0;
+      //
+      //     if (this.statsSummary.video.framesEncoded) {
+      //       framesEncodedPerSecond =
+      //         (summary.video.framesEncoded -
+      //           this.statsSummary.video.framesEncoded) /
+      //         diff;
+      //     }
+      //     if (this.statsSummary.video.framesDecoded) {
+      //       framesDecodedPerSecond =
+      //         (summary.video.framesDecoded -
+      //           this.statsSummary.video.framesDecoded) /
+      //         diff;
+      //     }
+      //     if (this.statsSummary.video.bytesSent && summary.video.bytesSent) {
+      //       diffBytesSent =
+      //         summary.video.bytesSent - this.statsSummary.video.bytesSent;
+      //     }
+      //     if (
+      //       this.statsSummary.video.bytesReceived &&
+      //       summary.video.bytesReceived
+      //     ) {
+      //       diffBytesReceived =
+      //         summary.video.bytesReceived -
+      //         this.statsSummary.video.bytesReceived;
+      //     }
+      //
+      //     const outboundVideoBitrate = (8 * diffBytesSent) / diff;
+      //     const inboundVideoBitrate = (8 * diffBytesReceived) / diff;
+      //
+      //     // console.log('bitrate', outboundVideoBitrate, 'kbps');
+      //     summary.video['bitrateOutboundVideo'] = outboundVideoBitrate;
+      //     summary.video['bitrateInboundVideo'] = inboundVideoBitrate;
+      //     summary.video['framesEncodedPerSecond'] = framesEncodedPerSecond;
+      //     summary.video['framesDecodedPerSecond'] = framesDecodedPerSecond;
+      //   }
+      //   if (this.statsSummary.transport && summary.transport) {
+      //     const diffSeconds =
+      //       (summary.transport.timestamp -
+      //         this.statsSummary.transport.timestamp) /
+      //       1000;
+      //     let bytesSentBitrate = 0;
+      //     let bytesReceivedBitrate = 0;
+      //     if (
+      //       this.statsSummary.transport.bytesReceived &&
+      //       summary.transport.bytesReceived
+      //     ) {
+      //       bytesReceivedBitrate =
+      //         (8 *
+      //           (summary.transport.bytesReceived -
+      //             this.statsSummary.transport.bytesReceived)) /
+      //         diffSeconds;
+      //     }
+      //     if (
+      //       this.statsSummary.transport.bytesSent &&
+      //       summary.transport.bytesSent
+      //     ) {
+      //       bytesSentBitrate =
+      //         (8 *
+      //           (summary.transport.bytesSent -
+      //             this.statsSummary.transport.bytesSent)) /
+      //         diffSeconds;
+      //     }
+      //
+      //     summary.transport['bitrateSent'] = bytesSentBitrate;
+      //     summary.transport['bitrateReceived'] = bytesReceivedBitrate;
+      //   }
+      // }
 
-          if (this.statsSummary.video.framesEncoded) {
-            framesEncodedPerSecond =
-              (summary.video.framesEncoded -
-                this.statsSummary.video.framesEncoded) /
-              diff;
-          }
-          if (this.statsSummary.video.framesDecoded) {
-            framesDecodedPerSecond =
-              (summary.video.framesDecoded -
-                this.statsSummary.video.framesDecoded) /
-              diff;
-          }
-          if (this.statsSummary.video.bytesSent && summary.video.bytesSent) {
-            diffBytesSent =
-              summary.video.bytesSent - this.statsSummary.video.bytesSent;
-          }
-          if (
-            this.statsSummary.video.bytesReceived &&
-            summary.video.bytesReceived
-          ) {
-            diffBytesReceived =
-              summary.video.bytesReceived -
-              this.statsSummary.video.bytesReceived;
-          }
-
-          const outboundVideoBitrate = (8 * diffBytesSent) / diff;
-          const inboundVideoBitrate = (8 * diffBytesReceived) / diff;
-
-          // console.log('bitrate', outboundVideoBitrate, 'kbps');
-          summary.video['bitrateOutboundVideo'] = outboundVideoBitrate;
-          summary.video['bitrateInboundVideo'] = inboundVideoBitrate;
-          summary.video['framesEncodedPerSecond'] = framesEncodedPerSecond;
-          summary.video['framesDecodedPerSecond'] = framesDecodedPerSecond;
-        }
-        if (this.statsSummary.transport && summary.transport) {
-          const diffSeconds =
-            (summary.transport.timestamp -
-              this.statsSummary.transport.timestamp) /
-            1000;
-          let bytesSentBitrate = 0;
-          let bytesReceivedBitrate = 0;
-          if (
-            this.statsSummary.transport.bytesReceived &&
-            summary.transport.bytesReceived
-          ) {
-            bytesReceivedBitrate =
-              (8 *
-                (summary.transport.bytesReceived -
-                  this.statsSummary.transport.bytesReceived)) /
-              diffSeconds;
-          }
-          if (
-            this.statsSummary.transport.bytesSent &&
-            summary.transport.bytesSent
-          ) {
-            bytesSentBitrate =
-              (8 *
-                (summary.transport.bytesSent -
-                  this.statsSummary.transport.bytesSent)) /
-              diffSeconds;
-          }
-
-          summary.transport['bitrateSent'] = bytesSentBitrate;
-          summary.transport['bitrateReceived'] = bytesReceivedBitrate;
-        }
-      }
       this.statsSummary = summary;
       // console.warn('summary', summary);
     });

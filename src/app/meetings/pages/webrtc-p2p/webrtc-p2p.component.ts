@@ -24,7 +24,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
   styleUrls: ['./webrtc-p2p.component.css'],
 })
 export class WebrtcP2pComponent implements OnInit, OnDestroy {
-  opened = true;
+  opened = false;
   volume = 10;
   subscriptions: Subscription[] = [];
   durationInSeconds = 0;

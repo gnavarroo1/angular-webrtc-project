@@ -16,7 +16,7 @@ export class SignalingService {
   get socketId() {
     return this.socket.ioSocket.id;
   }
-  public onConnect(): Observable<string> {
+  public onConnect(): Observable<any> {
     return this.socket.fromEvent('connect');
   }
 
