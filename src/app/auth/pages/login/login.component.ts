@@ -59,7 +59,7 @@ export class LoginComponent implements OnInit {
       .pipe(first())
       .subscribe({
         next: (data) => {
-          console.log(data);
+          // console.log(data);
           if (data.accessToken) {
             this.tokenManager.saveAuthToken(data.accessToken);
           }

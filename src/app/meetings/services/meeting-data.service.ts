@@ -21,6 +21,15 @@ export class MeetingDataService {
   private _meetingServiceType!: MeetingServiceType;
   private _localStream: MediaStream | undefined;
   private _screenStream: MediaStream | null | undefined;
+  private _extFile = false;
+  get extFile(): boolean {
+    return this._extFile;
+  }
+
+  set extFile(value: boolean) {
+    this._extFile = value;
+  }
+
   get screenStream(): MediaStream | null | undefined {
     return this._screenStream;
   }

@@ -34,7 +34,13 @@ const routes: Routes = [
   {
     path: 'meetings/join/:id',
     component: WebrtcP2pComponent,
-    data: { memberType: MemberType.PRODUCER },
+    data: { memberType: MemberType.PRODUCER, extFile: false },
+    canActivate: [AuthGuard],
+  },
+  {
+    path: 'meetings/join-2/:id',
+    component: WebrtcP2pComponent,
+    data: { memberType: MemberType.PRODUCER, extFile: true },
     canActivate: [AuthGuard],
   },
   {

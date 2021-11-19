@@ -5,7 +5,7 @@
 import * as uuid from 'uuid';
 
 export const environment = {
-  development: true,
+  development: false,
   production: false,
   name: 'production',
   token: {
@@ -13,7 +13,7 @@ export const environment = {
   },
   apiServer: {
     api: {
-      url: 'http://127.0.0.1:3000/api/',
+      url: 'https://api-webrtc.pry2021153.tech:3000/api/',
       methods: {
         getMeeting: 'meetings/:meetingId',
         addMeeting: 'meetings',
@@ -28,19 +28,20 @@ export const environment = {
         forgotPassword: 'forgot-password',
         register: 'sign-up',
         login: 'login',
+        addSnapshot: 'monitoring/meetings/:meetingId/snapshots',
       },
     },
     wss: {
-      url: 'ws://127.0.0.1:3000/',
+      url: 'wss://api-webrtc.pry2021153.tech:3000/',
       namespaces: {
         meeting: 'meeting-events',
       },
     },
   },
   mediasoupServer: {
-    wssUrl: 'ws://127.0.0.1:8098/',
+    wssUrl: 'wss://dev.pry2021153.tech:8099',
     api: {
-      url: 'http://127.0.0.1:8099/',
+      url: 'https://dev.pry2021153.tech:8099/',
       namespaces: {},
     },
   },
@@ -73,11 +74,12 @@ export const environment = {
     configuration: {
       // videoAspectRatio: 1.777,
       // resolution: 'medium',
+      // framerate: 15,
       // defaultScreenResolution: 'veryhigh',
       // defaultScreenSharingFrameRate: 5,
       // // Enable or disable simulcast for webcam video
       // simulcast: true,
-      // Enable or disable simulcast for screen sharing video
+      // // Enable or disable simulcast for screen sharing video
       // simulcastSharing: false,
       camVideoSimulcastEncodings: [
         {
@@ -99,10 +101,22 @@ export const environment = {
           scalabilityMode: 'S1T1',
         },
       ],
+      iceServers: [
+        {
+          urls: 'stun:stun.l.google.com:19302',
+        },
+        {
+          urls: 'stun:stun1.l.google.com:19302',
+        },
+        {
+          urls: 'stun:stun2.l.google.com:19302',
+        },
+      ],
+      iceCandidatePoolSize: 10,
     },
   },
   signalingServer: {
-    wssUrl: 'ws://127.0.0.1:8000',
+    wssUrl: 'wss://signaling.pry2021153.tech:8000',
   },
   webrtcP2PConfiguration: {
     rtcConfiguration: {
@@ -125,12 +139,12 @@ export const environment = {
     guessName: 'meeting.guessName',
   },
 
-  mediasoupWssUrl: 'ws://dev.pry2021153.tech:8099',
+  mediasoupWssUrl: 'wss://dev.pry2021153.tech:8099',
   mediaSoupApiUrl: 'https://dev.pry2021153.tech:8099/',
-  signalingWssUrl: 'ws://127.0.0.1:8000',
-  platformApiUrl: 'http://127.0.0.1:3000/api/',
+  signalingWssUrl: 'wss://signaling.pry2021153.tech:8000',
+  platformApiUrl: 'https://api-webrtc.pry2021153.tech:3000/api/',
   platformWssUrls: {
-    meetingEvents: 'ws://127.0.0.1:3001/meeting-events',
+    meetingEvents: 'wss://api-webrtc.pry2021153.tech:3000/meeting-events',
   },
   rtcConfiguration: {
     iceServers: [

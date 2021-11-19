@@ -17,6 +17,7 @@ import { MeetingMember } from '../../types/meeting-member.class';
 import { MatIconRegistry } from '@angular/material/icon';
 import { DomSanitizer } from '@angular/platform-browser';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-webrtc-p2p',
@@ -152,7 +153,9 @@ export class WebrtcP2pComponent implements OnInit, OnDestroy {
     this.meetingService.initMeeting(
       user,
       snapshotData.memberType,
-      MeetingServiceType.MESH,
+      snapshotData.memberType === MemberType.PRODUCER
+        ? MeetingServiceType.MESH
+        : MeetingServiceType.SFU,
       meetingId
     );
   }
@@ -188,34 +191,17 @@ export class WebrtcP2pComponent implements OnInit, OnDestroy {
     // this.audioEnabled = !this.audioEnabled;
   }
   async toggleVideo(): Promise<void> {
-    console.log(this.meetingMember);
     if (this.meetingMember) {
       if (this.meetingMember.produceVideoEnabled) {
         this.meetingService.videoPause();
-        console.log(this.meetingMember);
-        console.log(this.meetingService.localStream);
-        console.log(this.meetingDataService.localStream);
       } else {
         this.meetingService.videoResume();
-        console.log(this.meetingService.videoTrack?.enabled);
-        console.log(this.meetingService.localStream);
-        console.log(this.meetingDataService.localStream);
-        console.log(this.meetingMember);
       }
     }
   }
-  // getMeetingMemberAudioStream(key: string): MediaStream | undefined {
-  //   return this.meetingService.getMeetingMemberAudio(key);
-  // }
-  // getMeetingMemberVideoStream(key: string): MediaStream | undefined {
-  //   return this.meetingService.getMeetingMemberVideo(key);
-  // }
-  // getMeetingMemberScreenStream(key: string): MediaStream | undefined {
-  //   return this.meetingService.getMeetingMemberScreenVideo(key);
-  // }
   volumeChange(event: any, key: string) {
     const peer = this.meetingMembers.get(key);
-    console.log(event.value);
+    // console.log(event.value);
     if (peer) {
       const audioStream = peer.audioStream;
       if (audioStream) {
@@ -227,8 +213,6 @@ export class WebrtcP2pComponent implements OnInit, OnDestroy {
     }
   }
   globalAudioToggle(key: string): void {
-    console.log(key);
-    console.log(this.meetingMembers.get(key));
     this.meetingService.globalAudioToggle(key);
   }
   globalVideoToggle(key: string): void {
@@ -250,42 +234,7 @@ export class WebrtcP2pComponent implements OnInit, OnDestroy {
       this.meetingService.endBroadcastingSession();
     }
   }
-  toggleService() {
-    this.meetingService.toggleService();
-  }
-  //Temporal functions
-  printMeetingMembers() {
-    console.log(this.meetingMember);
-    console.log(this.producerMeetingMembers);
-    const members = Array.from(this.producerMeetingMembers.values());
-    console.log(this.hasSFUConnection || members[0].hasSFUConnection);
-    // console.log(members[0].sfuVideoStream);
-    this.meetingService.producerVideoStatus();
-    console.log(members[0].videoStream);
-    console.log(members[0].videoStream?.getVideoTracks());
 
-    // this.meetingService.closeTransport();
-    // console.warn('member', this.meetingService.meetingMembers);
-    // console.warn(this.meetingService.localStream);
-    // const consumers = this.meetingService.getConsumers();
-    // consumers.forEach((value: any) => {
-    //   const member = this.meetingMembers.get(value.id);
-    //   if (member) {
-    //     console.warn(
-    //       member.produceVideoAllowed &&
-    //         member.produceVideoEnabled &&
-    //         !member.isScreenSharing
-    //     );
-    //     console.warn(member.produceVideoAllowed && member.isScreenSharing);
-    //     console.warn(this.meetingService.getMeetingMemberVideo(value.id));
-    //   }
-    //
-    //   console.warn('consumer', value);
-    // });
-  }
-  printStreams(): void {
-    this.meetingService.getSessionStats();
-  }
   isConsumer(meetingMember: MeetingMember): boolean {
     return meetingMember.memberType === MemberType.CONSUMER;
   }
@@ -300,10 +249,6 @@ export class WebrtcP2pComponent implements OnInit, OnDestroy {
       (item) => item.memberType === MemberType.CONSUMER
     );
   }
-
-  get hasSFUConnection(): boolean {
-    return this.meetingMember.connectionType === MeetingServiceType.SFU;
-  }
   get messages() {
     return this.meetingService.messages;
   }
@@ -312,6 +257,9 @@ export class WebrtcP2pComponent implements OnInit, OnDestroy {
   }
   screenSharePermissionToggle(key: string): void {
     this.meetingService.screenSharePermissionToggle(key);
+  }
+  get hasSFUConnection(): boolean {
+    return this.meetingMember.connectionType === MeetingServiceType.SFU;
   }
 
   get rowCount(): number {
@@ -351,5 +299,38 @@ export class WebrtcP2pComponent implements OnInit, OnDestroy {
       sub.unsubscribe();
     });
     this.meetingService.onDestroy();
+  }
+  //Temporal functions
+  toggleService() {
+    this.meetingService.toggleService();
+  }
+  printMeetingMembers() {
+    const members = Array.from(this.producerMeetingMembers.values());
+    console.log(members);
+    this.snackBar.open(
+      `consumer audio ${members[0].sfuConsumerConnection?.consumerAudio?.paused}| consumer stats ${members[0].sfuConsumerConnection?.consumerVideo?.paused}`,
+      '',
+      {
+        verticalPosition: 'top',
+        horizontalPosition: 'center',
+        duration: 5000,
+      }
+    );
+
+    console.log(members[0].sfuConsumerConnection?.consumerAudio?.track);
+    members[0].sfuConsumerConnection?.consumerAudio?.resume();
+    console.log(this.meetingMember);
+    // Swal.fire({
+    //   title: 'alert',
+    //   text: `${
+    //     JSON.stringify(this.con)
+    //   } | `,
+    //   icon: 'success',
+    //   allowOutsideClick: false,
+    //   confirmButtonText: 'Go to meeting room',
+    // }).then(() => {});
+  }
+  printStreams(): void {
+    this.meetingService.getSessionStats();
   }
 }

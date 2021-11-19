@@ -84,23 +84,14 @@ export const environment = {
       // Enable or disable simulcast for screen sharing video
       // simulcastSharing: false,
       camVideoSimulcastEncodings: [
+        { scaleResolutionDownBy: 4, maxBitrate: 500000 },
         {
-          rid: 'r0',
-          scaleResolutionDownBy: 4,
-          maxBitrate: 512000,
-          scalabilityMode: 'S1T1',
-        },
-        {
-          rid: 'r1',
           scaleResolutionDownBy: 2,
-          maxBitrate: 768000,
-          scalabilityMode: 'S1T1',
+          maxBitrate: 1000000,
         },
         {
-          rid: 'r2',
           scaleResolutionDownBy: 1,
-          maxBitrate: 1536000,
-          scalabilityMode: 'S1T1',
+          maxBitrate: 5000000,
         },
       ],
     },

@@ -158,8 +158,8 @@
                     <div data-component="PeerView">
                       <div class="info">
                         <div class="icons">
-                          <div class="icon info" (click)="printMeetingMembers()" *ngIf="isDevelopment"></div>
-                          <div class="icon stats" (click)="toggleService()" *ngIf="isDevelopment"></div>
+                          <div class="icon info" id="printTest" (click)="printMeetingMembers()" *ngIf="isDevelopment"></div>
+                          <div class="icon stats" id="toggleService" (click)="toggleService()" *ngIf="isDevelopment"></div>
                         </div>
                         <div class="peer is-me">
                           <span class="display-name editable" tabindex="0">
@@ -197,8 +197,8 @@
                             </div>
                           </div>
                         </div>
-                        <video autoplay="" playsinline [id]="peer.key" [srcObject]="peer.value.videoStream" *ngIf="peer.value.produceVideoAllowed && peer.value.produceVideoEnabled" muted ></video>
-                        <audio autoplay="" playsinline  [srcObject]="peer.value.audioStream" *ngIf="peer.value.audioStream && peer.value.produceAudioAllowed && peer.value.produceAudioEnabled" [volume]="peer.value.volume" [muted]="!peer.value.produceAudioEnabled"></audio>
+                        <video autoplay [id]="peer.key" [srcObject]="peer.value.videoStream" *ngIf="peer.value.produceVideoAllowed && peer.value.produceVideoEnabled"></video>
+                        <audio autoplay [srcObject]="peer.value.audioStream" *ngIf="peer.value.audioStream && peer.value.produceAudioAllowed && peer.value.produceAudioEnabled" [volume]="peer.value.volume"></audio>
                         <div class="volume-container">
                           <div class="bar level0"></div>
                         </div>
@@ -210,15 +210,15 @@
             </div>
           </div>
         </div>
-        <div fxLayoutAlign="center center" class="controls-panel" *ngIf="meetingMember && isMeetingReady">
+        <div fxLayoutAlign="center center" class="controls-panel" *ngIf="meetingMember && isMeetingReady && !isOnlyConsumer">
           <div class="example-button-container">
-            <button mat-fab (click)="toggleAudio()" [ngClass]="!meetingMember.produceAudioEnabled?'button-warn':'button-white'">
+            <button mat-fab (click)="toggleAudio()" id="toggleAudioButton" [ngClass]="!meetingMember.produceAudioEnabled?'button-warn':'button-white'">
               <mat-icon [svgIcon]="!meetingMember.produceAudioEnabled?'svg-mic-off':'svg-mic-on'">
               </mat-icon>
             </button>
           </div>
           <div class="example-button-container">
-            <button mat-fab (click)="toggleVideo()" [ngClass]="!meetingMember.produceVideoEnabled?'button-warn':'button-white'">
+            <button mat-fab (click)="toggleVideo()" id="toggleVideoButton" [ngClass]="!meetingMember.produceVideoEnabled?'button-warn':'button-white'">
               <mat-icon [svgIcon]="!meetingMember.produceVideoEnabled?'svg-cam-off':'svg-cam-on'">
               </mat-icon>
             </button>

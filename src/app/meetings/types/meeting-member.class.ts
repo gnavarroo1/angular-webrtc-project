@@ -153,12 +153,6 @@ export class MeetingMember {
   private _videoStream: MediaStream | undefined | null;
   private _audioStream: MediaStream | undefined | null;
 
-  private _eventEmitter: EventEmitter = new EventEmitter();
-
-  get eventEmitter(): EventEmitter {
-    return this._eventEmitter;
-  }
-
   constructor(meetingMember: {
     _id: string;
     userId: string;
@@ -175,7 +169,8 @@ export class MeetingMember {
   }) {
     this._id = meetingMember._id;
     this._userId = meetingMember.userId;
-    this._nickname = meetingMember.nickname;
+    // this._nickname = meetingMember.nickname;
+    this._nickname = meetingMember._id;
     this._memberType = meetingMember.memberType;
     this._isScreenSharing = meetingMember.isScreenSharing;
     this._remoteConnectionType = meetingMember.connectionType;
@@ -198,14 +193,6 @@ export class MeetingMember {
    * @param to
    */
   updateRemoteConnectionType(to: MeetingServiceType): void {
-    console.warn('connection type changed to', to);
-    console.warn(
-      'video track available',
-      this.sfuConsumerConnection.consumerVideoTrack,
-      this.p2pConsumerConnection.remoteVideoTrack
-    );
-    console.warn('currentvideoTrack', this.videoStream?.getVideoTracks()[0]);
-    console.warn('currentaudioTrack', this.audioStream?.getAudioTracks()[0]);
     switch (to) {
       case MeetingServiceType.SFU:
         if (
@@ -216,7 +203,7 @@ export class MeetingMember {
             this.sfuConsumerConnection.consumerVideo.track,
           ]);
         }
-        this.emitVideoStreamChange();
+
         if (
           this.sfuConsumerConnection.consumerAudio &&
           this.produceAudioEnabled
@@ -226,7 +213,7 @@ export class MeetingMember {
             this.sfuConsumerConnection.consumerAudio.track,
           ]);
         }
-        this.emitAudioStreamChange();
+
         break;
       case MeetingServiceType.MESH:
         if (
@@ -237,7 +224,7 @@ export class MeetingMember {
             this.p2pConsumerConnection.remoteVideoTrack,
           ]);
         }
-        this.emitVideoStreamChange();
+
         if (
           this.p2pConsumerConnection.remoteAudioTrack &&
           this.produceAudioEnabled
@@ -246,7 +233,7 @@ export class MeetingMember {
             this.p2pConsumerConnection.remoteAudioTrack,
           ]);
         }
-        this.emitAudioStreamChange();
+
         break;
     }
     this.remoteConnectionType = to;
@@ -259,14 +246,6 @@ export class MeetingMember {
    * @param to
    */
   updateLocalConnectionType(to: MeetingServiceType): void {
-    console.warn('connection type changed to', to);
-    console.warn(
-      'video track available',
-      this.sfuConsumerConnection.consumerVideoTrack,
-      this.p2pConsumerConnection.remoteVideoTrack
-    );
-    console.warn('currentvideoTrack', this.videoStream?.getVideoTracks()[0]);
-    console.warn('currentaudioTrack', this.audioStream?.getAudioTracks()[0]);
     switch (to) {
       case MeetingServiceType.SFU:
         if (
@@ -278,7 +257,7 @@ export class MeetingMember {
             this.sfuConsumerConnection.consumerVideo.track,
           ]);
         }
-        this.emitVideoStreamChange();
+
         if (
           this.sfuConsumerConnection.consumerAudio &&
           this.produceAudioEnabled
@@ -298,7 +277,7 @@ export class MeetingMember {
 
           console.log('change to sfu audiotrack');
         }
-        this.emitAudioStreamChange();
+
         break;
       case MeetingServiceType.MESH:
         if (
@@ -310,7 +289,7 @@ export class MeetingMember {
             this.p2pConsumerConnection.remoteVideoTrack,
           ]);
         }
-        this.emitVideoStreamChange();
+
         if (
           this.p2pConsumerConnection.remoteAudioTrack &&
           this.produceAudioEnabled
@@ -321,17 +300,9 @@ export class MeetingMember {
           ]);
           console.log('change to rtc audio track');
         }
-        this.emitAudioStreamChange();
+
         break;
     }
     this.localConnectionType = to;
-  }
-
-  emitAudioStreamChange() {
-    this._eventEmitter.emit('audioStreamChange');
-  }
-
-  emitVideoStreamChange() {
-    this._eventEmitter.emit('videoStreamChange');
   }
 }

@@ -61,7 +61,6 @@ export interface IPeerStat {
 export enum MeetingServiceType {
   MESH = 'MESH',
   SFU = 'SFU',
-  BOTH = 'BOTH',
 }
 export type TState = 'new' | 'connecting' | 'connected' | 'failed' | 'closed';
 export type TPeer = 'producer' | 'consumer';
@@ -84,7 +83,6 @@ export type MeetingMemberDto = {
   userId: string;
   memberType: MemberType;
   nickname?: string;
-
   isScreenSharing: boolean;
   produceVideoEnabled?: boolean;
   produceAudioEnabled?: boolean;
@@ -92,28 +90,10 @@ export type MeetingMemberDto = {
   produceVideoAllowed?: boolean;
   connectionType: MeetingServiceType;
   canScreenShare?: boolean;
-  volume?: number;
   meetingId?: string;
 };
-export type IMeetingMemberDto = IMeetingMemberBase;
-
-export interface IMeetingMemberBase {
-  _id: string;
-  userId: string;
-  memberType: MemberType;
-  nickname: string;
-  isScreenSharing: boolean;
-  connectionType: MeetingServiceType;
-  localConnectionType: MeetingServiceType;
-  canScreenShare: boolean;
-  produceVideoEnabled: boolean;
-  produceVideoAllowed: boolean;
-  produceAudioEnabled: boolean;
-  produceAudioAllowed: boolean;
-}
 
 export enum MemberType {
-  BOTH = 'BOTH',
   PRODUCER = 'PRODUCER',
   CONSUMER = 'CONSUMER',
 }
@@ -178,39 +158,49 @@ export type TConsumeRequest = {
 };
 
 //Stats Types
-export type P2PVideoStats = {
-  bytesSent?: number;
-  bytesReceived?: number;
-  packetsReceived?: number;
-  packetsSent?: number;
-  packetsLost?: number;
-  nackCountInbound?: number;
-  nackCountOutbound?: number;
-  framesSent?: number;
-  framesEncoded?: number;
-  qpSumOutbound?: number;
-  firCountOutbound?: number;
-  pliCountOutbound?: number;
+
+type VideoInboundStats = {
   framesReceived?: number;
   framesDecoded?: number;
   qpSumInbound?: number;
   firCountInbound?: number;
   pliCountInbound?: number;
-  timestamp?: number;
-  jitter?: number;
   qualityLimitationReason?: 'none' | 'cpu' | 'bandwidth' | 'other';
+  framesDropped?: number;
+  remoteFrameHeight?: number;
+  remoteFrameWidth?: number;
 };
-export type P2PAudioStats = {
-  bytesSent?: number;
+type VideoOutboundStats = {
+  framesSent?: number;
+  framesEncoded?: number;
+  qpSumOutbound?: number;
+  firCountOutbound?: number;
+  pliCountOutbound?: number;
+  localFrameHeight?: number;
+  localFrameWidth?: number;
+};
+
+type BaseInboundStats = {
   bytesReceived?: number;
   packetsReceived?: number;
-  packetsSent?: number;
   packetsLost?: number;
+  jitter?: number;
   nackCountInbound?: number;
+  timestamp?: number;
+};
+type BaseOutboundStats = {
+  bytesSent?: number;
+  packetsSent?: number;
   nackCountOutbound?: number;
   timestamp?: number;
-  jitter?: number;
 };
+
+export type P2PVideoStats = BaseOutboundStats &
+  BaseInboundStats &
+  VideoOutboundStats &
+  VideoInboundStats;
+
+export type P2PAudioStats = BaseOutboundStats & BaseInboundStats;
 
 export type TransportStats = {
   bytesSent?: number;
@@ -220,32 +210,32 @@ export type TransportStats = {
   timestamp?: number;
 };
 
-export type P2PStatsSnapshot = {
-  transport?: TransportStats;
-  video?: P2PVideoStats;
-  audio?: P2PAudioStats;
-};
-
-export type VideoProducerStats = {
-  bitrate?: number;
-  nackCount: number;
+export type VideoProducerStats = BaseProducerStats & {
   firCount?: number;
   pliCount?: number;
-  jitter?: number;
-  byteCount?: number;
-  packetCount?: number;
-  packetsLost?: number;
-  timestamp: number;
 };
-export type AudioProducerStats = {
-  bitrate?: number;
-  nackCount?: number;
-  packetCount?: number;
+
+export type AudioProducerStats = BaseProducerStats;
+export type BaseConsumerStats = {
   packetsLost?: number;
+  bytesReceived?: number;
+  packetsReceived?: number;
+  nackCountInbound?: number;
   jitter?: number;
-  byteCount?: number;
-  timestamp: number;
+  timestamp?: number;
 };
+export type VideoConsumerStats = BaseConsumerStats & {
+  framesReceived?: number;
+  framesDecoded?: number;
+  qpSumInbound?: number;
+  firCountInbound?: number;
+  pliCountInbound?: number;
+  framesDropped?: number;
+  remoteFrameHeight?: number;
+  remoteFrameWidth?: number;
+};
+
+export type AudioConsumerStats = BaseConsumerStats;
 
 export type ProducerStatsSnapshot = {
   transport?: TransportStats;
@@ -253,42 +243,41 @@ export type ProducerStatsSnapshot = {
   audio?: AudioProducerStats;
 };
 
-export type VideoConsumerStats = {
-  transport?: TransportStats;
-  bytesReceived?: number;
-  packetsReceived?: number;
-  framesReceived?: number;
-  framesDecoded?: number;
-  packetsLost?: number;
-  nackCountInbound?: number;
-  qpSumInbound?: number;
-  firCountInbound?: number;
-  pliCountInbound?: number;
-  timestamp?: number;
-};
-export type AudioConsumerStats = {
-  transport?: TransportStats;
-  packetsLost?: number;
-  bytesReceived?: number;
-  packetsReceived?: number;
-  nackCountInbound?: number;
-  timestamp?: number;
+export type ConsumerMediaStats = {
+  video?: VideoConsumerStats;
+  audio?: AudioConsumerStats;
 };
 
 export type ConsumerStatsSnapshot = {
   transport?: TransportStats;
-  video: Map<string, VideoConsumerStats>;
-  audio: Map<string, AudioConsumerStats>;
+  media: Record<string, ConsumerMediaStats>;
 };
 
+export type P2PStatsSnapshot = {
+  transport?: TransportStats;
+  video?: P2PVideoStats;
+  audio?: P2PAudioStats;
+};
 export type SfuStatsSnapshot = {
   producer?: ProducerStatsSnapshot;
   consumer?: ConsumerStatsSnapshot;
 };
-
 export type CurrentSessionStats = {
   meetingId: string;
   meetingMemberId: string;
-  p2pSnapshots: P2PStatsSnapshot[];
+  p2pSnapshots: Record<string, P2PStatsSnapshot>;
   sfuSnapshot?: SfuStatsSnapshot;
+  timestamp: number;
+  activeSFUConnections: number;
+  activeP2PConnections: number;
+};
+
+type BaseProducerStats = {
+  bitrate?: number;
+  byteCount?: number;
+  nackCount?: number;
+  packetCount?: number;
+  packetsLost?: number;
+  jitter?: number;
+  timestamp: number;
 };

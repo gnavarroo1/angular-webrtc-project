@@ -9,7 +9,7 @@ export class SignalingService {
   constructor(private socket: SignalingSocket) {
     // this.socket.connect();
     this.socket.on('connect', () => {
-      console.warn('SOCKET CONNECTED TO API SIGNALING SERVER');
+      // console.warn('SOCKET CONNECTED TO API SIGNALING SERVER');
     });
   }
 
@@ -34,7 +34,7 @@ export class SignalingService {
   public onInitReceive(): Observable<any> {
     return this.socket.fromEvent('initReceive');
   }
-  initSend(payload: { socketId: string; meetingMemberId: string }): any {
+  initSend(payload: { socketId: string; srcMeetingMemberId: string }): any {
     this.socket.emit('initSend', payload);
   }
   public onInitSend(): Observable<any> {
@@ -56,6 +56,20 @@ export class SignalingService {
   }
   public onIceCandidate(): Observable<any> {
     return this.socket.fromEvent('iceCandidate');
+  }
+
+  public onHandshakeMessage(): Observable<any> {
+    return this.socket.fromEvent('handshakeMessage');
+  }
+
+  handshakeMessage(payload: {
+    id: string;
+    target: string;
+    targetSocketId: string;
+    sdp?: any;
+    candidate?: any;
+  }): void {
+    this.socket.emit('handshakeMessage', payload);
   }
 
   offer(payload: {

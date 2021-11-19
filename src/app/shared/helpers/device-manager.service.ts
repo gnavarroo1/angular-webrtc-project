@@ -136,7 +136,7 @@ export class DeviceService {
   }
   public async getDisplayMedia(): Promise<MediaStream> {
     const mediaDevices = navigator.mediaDevices as IMediaDevices;
-    console.warn(environment.screenSettings);
+    // console.warn(environment.screenSettings);
     return new Promise((resolve, reject) => {
       return mediaDevices
         .getDisplayMedia({

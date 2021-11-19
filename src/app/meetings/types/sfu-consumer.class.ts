@@ -1,4 +1,5 @@
 import { Consumer } from 'mediasoup-client/lib/Consumer';
+import { AudioConsumerStats, VideoConsumerStats } from './defines';
 
 export class SfuConsumer {
   get consumerScreen(): Consumer | undefined {
@@ -51,82 +52,138 @@ export class SfuConsumer {
   set statsSummary(value: Record<string, any>) {
     this._statsSummary = value;
   }
-  async getStats(): Promise<void> {
-    const summary: Record<string, any> = {};
-    if (this.consumerVideo) {
-      await Promise.all([
-        this.consumerVideo.getStats(),
-        this.consumerAudio?.getStats(),
-      ])
-        .then((stats) => {
-          const videoStats = stats[0];
-          const audioStats = stats[1];
-          if (videoStats) {
-            videoStats.forEach((report) => {
-              switch (report.type as RTCStatsType) {
-                case 'inbound-rtp':
-                  summary.video = {
-                    ...summary[report.mediaType],
-                    packetsReceived: report.packetsReceived,
-                    packetsLost: report.packetsLost,
-                    framesReceived: report.framesReceived,
-                    bytesReceived: report.bytesReceived,
-                    framesDecoded: report.framesDecoded,
-                    pliCountInbound: report.pliCount,
-                    qpSumInbound: report.qpSum,
-                    firCountInbound: report.firCount,
-                    nackCountInbound: report.nackCount,
-                    jitter: report.jitter,
-                    timestamp: report.timestamp,
-                  };
-                  break;
-                case 'transport':
-                  // console.warn('transport', report);
-                  summary.video.transport = {
-                    bytesSent: report.bytesSent,
-                    bytesReceived: report.bytesReceived,
-                    packetsSent: report.packetsSent,
-                    packetsReceived: report.packetsReceived,
-                    timestamp: report.timestamp,
-                  };
-                  break;
-              }
-            });
-          }
-          if (audioStats) {
-            audioStats.forEach((report) => {
-              switch (report.type as RTCStatsType) {
-                case 'inbound-rtp':
-                  summary.audio = {
-                    ...summary[report.mediaType],
-                    packetsReceived: report.packetsReceived,
-                    packetsLost: report.packetsLost,
-                    bytesReceived: report.bytesReceived,
-                    nackCountInbound: report.nackCount,
-                    jitter: report.jitter,
-                    timestamp: report.timestamp,
-                  };
-                  break;
-                case 'transport':
-                  // console.warn('transport', report);
-                  summary.audio.transport = {
-                    bytesSent: report.bytesSent,
-                    bytesReceived: report.bytesReceived,
-                    packetsSent: report.packetsSent,
-                    packetsReceived: report.packetsReceived,
-                    timestamp: report.timestamp,
-                  };
-                  break;
-              }
-            });
-          }
-        })
-        .catch((err) => {
-          console.error(err);
-        });
+  async getStats(defaultTimestamp: number): Promise<void> {
+    const summary: Record<
+      string,
+      VideoConsumerStats | AudioConsumerStats | any
+    > = {
+      video: {
+        packetsReceived: 0,
+        packetsLost: 0,
+        framesReceived: 0,
+        bytesReceived: 0,
+        framesDecoded: 0,
+        pliCountInbound: 0,
+        qpSumInbound: 0,
+        firCountInbound: 0,
+        nackCountInbound: 0,
+        jitter: 0,
+        timestamp: defaultTimestamp,
+      },
+      audio: {
+        packetsReceived: 0,
+        packetsLost: 0,
+        bytesReceived: 0,
+        nackCountInbound: 0,
+        jitter: 0,
+        timestamp: defaultTimestamp,
+      },
+    };
+    const promises = [];
+    const hasConsumerVideo = !!this.consumerVideo;
+    const hasConsumerAudio = !!this.consumerAudio;
+    if (hasConsumerVideo && hasConsumerAudio) {
+      promises.push(
+        this.consumerVideo?.getStats(),
+        this.consumerAudio?.getStats()
+      );
+    } else if (hasConsumerVideo) {
+      promises.push(this.consumerVideo?.getStats());
+    } else if (hasConsumerAudio) {
+      promises.push(this.consumerAudio?.getStats());
+    } else {
+      this.statsSummary = summary;
+      return;
     }
-    this.statsSummary = summary;
+    await Promise.all(promises)
+      .then((stats) => {
+        let videoStats;
+        let audioStats;
+        if (stats.length == 0) {
+          return;
+        } else if (stats.length == 1) {
+          if (hasConsumerVideo) {
+            videoStats = stats[0];
+          } else if (hasConsumerAudio) {
+            audioStats = stats[0];
+          }
+        } else {
+          videoStats = stats[0];
+          audioStats = stats[1];
+        }
 
+        if (videoStats) {
+          videoStats.forEach((report) => {
+            switch (report.type as RTCStatsType) {
+              case 'inbound-rtp':
+                summary.video = {
+                  ...summary.video,
+                  packetsReceived: report.packetsReceived,
+                  packetsLost: report.packetsLost,
+                  framesReceived: report.framesReceived,
+                  bytesReceived: report.bytesReceived,
+                  framesDecoded: report.framesDecoded,
+                  firCountInbound: report.firCount,
+                  pliCountInbound: report.pliCount,
+                  qpSumInbound: report.qpSum,
+                  nackCountInbound: report.nackCount,
+                  framesDropped: report.framesDropped,
+                  remoteFrameHeight: report.frameHeight,
+                  remoteFrameWidth: report.frameWidth,
+                  jitter: report.jitter,
+                  timestamp: defaultTimestamp,
+                };
+                break;
+            }
+          });
+        } else {
+          summary.video = {
+            ...summary.video,
+            packetsReceived: 0,
+            packetsLost: 0,
+            framesReceived: 0,
+            bytesReceived: 0,
+            framesDecoded: 0,
+            pliCountInbound: 0,
+            qpSumInbound: 0,
+            firCountInbound: 0,
+            nackCountInbound: 0,
+            jitter: 0,
+            timestamp: defaultTimestamp,
+          };
+        }
+        if (audioStats) {
+          audioStats.forEach((report) => {
+            switch (report.type as RTCStatsType) {
+              case 'inbound-rtp':
+                summary.audio = {
+                  ...summary.audio,
+                  packetsReceived: report.packetsReceived,
+                  packetsLost: report.packetsLost,
+                  bytesReceived: report.bytesReceived,
+                  nackCountInbound: report.nackCount,
+                  jitter: report.jitter,
+                  timestamp: defaultTimestamp,
+                };
+                break;
+            }
+          });
+        } else {
+          summary.audio = {
+            ...summary.audio,
+            packetsReceived: 0,
+            packetsLost: 0,
+            bytesReceived: 0,
+            nackCountInbound: 0,
+            jitter: 0,
+            timestamp: defaultTimestamp,
+          };
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+    this.statsSummary = summary;
     return;
   }
 }

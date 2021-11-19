@@ -5,7 +5,7 @@
 import * as uuid from 'uuid';
 
 export const environment = {
-  development: false,
+  development: true,
   production: false,
   name: 'production',
   token: {
@@ -22,8 +22,13 @@ export const environment = {
         endMeetingSession: 'meetings/:meetingId',
         startBroadcastingSession: 'meetings/:meetingId/broadcasting/start',
         endBroadcastingSession: 'meetings/:meetingId/broadcasting/end',
+        resendConfirmationEmail: 'resend-confirmation-email',
+        resetPassword: 'reset-password',
+        verifyEmail: 'verify-email',
+        forgotPassword: 'forgot-password',
         register: 'sign-up',
         login: 'login',
+        addSnapshot: 'monitoring/meetings/:meetingId/snapshots',
       },
     },
     wss: {
@@ -39,42 +44,54 @@ export const environment = {
       url: 'https://dev.pry2021153.tech:8099/',
       namespaces: {},
     },
+    externalVideo: '/files/media/test2.y4m',
+    externalAudio: '/files/media/test2.wav',
+  },
+  videoSettings: {
+    //
+    width: {
+      min: 480,
+      max: 1280,
+    },
+    height: {
+      min: 360,
+      max: 720,
+    },
+    framerate: 30, // max fps
+    aspectRatio: {
+      min: 4 / 3,
+      max: 16 / 9,
+    },
+  },
+  maxSendBitrate: 1536000, //1500 kbps ~ 960x540 / 854x480 max bitrate  | 1280x720 min bitrate
+  screenSettings: {
+    width: {
+      min: 640,
+    },
+    height: {
+      min: 480,
+    },
   },
   mediasoupClient: {
     configuration: {
-      videoAspectRatio: 1.777,
-      resolution: 'medium',
-      framerate: 15,
-      defaultScreenResolution: 'veryhigh',
-      defaultScreenSharingFrameRate: 5,
-      // Enable or disable simulcast for webcam video
-      simulcast: true,
-      // Enable or disable simulcast for screen sharing video
-      simulcastSharing: false,
+      // videoAspectRatio: 1.777,
+      // resolution: 'medium',
+      // framerate: 15,
+      // defaultScreenResolution: 'veryhigh',
+      // defaultScreenSharingFrameRate: 5,
+      // // Enable or disable simulcast for webcam video
+      // simulcast: true,
+      // // Enable or disable simulcast for screen sharing video
+      // simulcastSharing: false,
       camVideoSimulcastEncodings: [
+        { scaleResolutionDownBy: 4, maxBitrate: 500000 },
         {
-          rid: 'r0',
-          scaleResolutionDownBy: 8,
-          maxBitrate: 100000,
-          scalabilityMode: 'S1T3',
-        },
-        {
-          rid: 'r1',
-          scaleResolutionDownBy: 4,
-          maxBitrate: 200000,
-          scalabilityMode: 'S1T3',
-        },
-        {
-          rid: 'r2',
           scaleResolutionDownBy: 2,
-          maxBitrate: 700000,
-          scalabilityMode: 'S1T3',
+          maxBitrate: 1000000,
         },
         {
-          rid: 'r3',
           scaleResolutionDownBy: 1,
-          maxBitrate: 2500000,
-          scalabilityMode: 'S1T3',
+          maxBitrate: 5000000,
         },
       ],
       iceServers: [

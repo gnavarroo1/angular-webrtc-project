@@ -10,7 +10,7 @@ export class ErrorPageComponent {
   txtError = '';
   constructor(private router: Router) {
     const currentNavigation = this.router.getCurrentNavigation();
-    console.log(currentNavigation);
+    // console.log(currentNavigation);
     if (currentNavigation) {
       const state = currentNavigation.extras.state;
       if (state) {
