@@ -178,7 +178,8 @@ export class SfuWebrtcService {
                     peer.sfuConsumerConnection.consumerScreen = consumer;
                     break;
                   case 'audio':
-                    peer.sfuConsumerConnection.consumerAudio = consumer;
+                    if (consumer.kind === 'audio')
+                      peer.sfuConsumerConnection.consumerAudio = consumer;
                     break;
                   case 'video':
                     peer.sfuConsumerConnection.consumerVideo = consumer;
@@ -207,6 +208,10 @@ export class SfuWebrtcService {
                     new MediaStream([consumer.track]);
                   this.meetingDataService.screenStream =
                     peer.sfuConsumerConnection.consumerScreenStream;
+                }
+                if (!peer.hasSFUConnection) {
+                  await this.consumerVideoPause(peer);
+                  await this.consumerAudioPause(peer);
                 }
               } catch (e) {
                 reject({
@@ -361,11 +366,13 @@ export class SfuWebrtcService {
                 this.localMeetingMember.connectionType === 'SFU'
               ) {
                 if (data.mediaTag === 'video') {
-                  member.videoStream = new MediaStream([media.track]);
+                  await this.consumerVideoResume(member);
                   member.sfuConsumerConnection.consumerVideoTrack = media.track;
+                  member.videoStream = new MediaStream([media.track]);
                 } else if (data.mediaTag === 'audio') {
-                  member.audioStream = new MediaStream([media.track]);
+                  await this.consumerAudioResume(member);
                   member.sfuConsumerConnection.consumerAudioTrack = media.track;
+                  member.audioStream = new MediaStream([media.track]);
                 }
                 if (media.paused) {
                   media.resume();
@@ -571,11 +578,15 @@ export class SfuWebrtcService {
       const routerRtpCapabilities = data.routerRtpCapabilities;
       //console.warn('DATA', routerRtpCapabilities);
       if (!this.mediasoupDevice.loaded) {
-        routerRtpCapabilities.headerExtensions =
-          routerRtpCapabilities.headerExtensions.filter(
-            (ext: any) => ext.uri !== 'urn:3gpp:video-orientation'
-          );
         await this.mediasoupDevice.load({ routerRtpCapabilities });
+        {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+          });
+          const audioTrack = stream.getAudioTracks()[0];
+          audioTrack.enabled = false;
+          setTimeout(() => audioTrack.stop(), 120000);
+        }
       }
       await this.createProducerTransport();
       await this.createConsumerTransport();
@@ -628,44 +639,41 @@ export class SfuWebrtcService {
         iceServers: [],
         proprietaryConstraints: this.PC_PROPRIETARY_CONSTRAINTS,
       });
+
       // 'connect' | 'produce' | 'producedata' | 'connectionstatechange'
       this.producerTransport.on(
         'connect',
         async ({ dtlsParameters }, callback, errback) => {
-          try {
-            await this.wssService.requestMedia({
+          this.wssService
+            .requestMedia({
               action: 'connectWebRtcTransport',
               data: { dtlsParameters, type: 'PRODUCER' },
-            });
-            callback();
-          } catch (error) {
-            errback(error);
-          }
+            })
+            .then(callback)
+            .catch(errback);
         }
       );
       this.producerTransport.on(
         'produce',
         async ({ kind, rtpParameters, appData }, callback, errback) => {
-          await this.wssService
-            .requestMedia(
-              // this._userId, this._sessionId,
-              {
-                action: 'produce',
-                data: {
-                  producerTransportId: this.producerTransport.id,
-                  kind,
-                  rtpParameters,
-                  appData: {
-                    ...appData,
-                  },
+          try {
+            const { id } = await this.wssService.requestMedia({
+              action: 'produce',
+              data: {
+                producerTransportId: this.producerTransport.id,
+                kind,
+                rtpParameters,
+                appData: {
+                  ...appData,
                 },
-              }
-            )
-            .then(callback)
-            .catch(errback);
+              },
+            });
+            callback({ id });
+          } catch (e) {
+            errback(e);
+          }
         }
       );
-
       this.producerTransport.on(
         'connectionstatechange',
         async (state: TState) => {
@@ -714,7 +722,10 @@ export class SfuWebrtcService {
               },
             })
             .then(callback)
-            .catch(errback);
+            .catch((err) => {
+              console.error(err);
+              errback(err);
+            });
         }
       );
 
@@ -918,14 +929,19 @@ export class SfuWebrtcService {
             track: videoTrack,
             disableTrackOnPause: false,
             zeroRtpOnPause: true,
-
-            // encodings:
-            //   environment.mediasoupClient.configuration
-            //     .camVideoSimulcastEncodings,
+            encodings: [
+              {
+                maxBitrate: 720000,
+                scaleResolutionDownBy: 2,
+              },
+              {
+                maxBitrate: 1572864,
+                scaleResolutionDownBy: 1,
+              },
+            ],
             codecOptions: {
               videoGoogleStartBitrate: 1000,
             },
-
             appData: {
               mediaTag: 'video',
               userId: this.localMeetingMember._id!,
@@ -1253,7 +1269,7 @@ export class SfuWebrtcService {
           rtpParameters,
           producerId,
         });
-        consumer.pause();
+
         consumer.on('transportclose', async () => {
           // console.warn(`Producer ${member.id} audio stream transport closed`);
           member.sfuConsumerConnection.consumerVideo = undefined;
@@ -1271,11 +1287,17 @@ export class SfuWebrtcService {
         const videoStream = new MediaStream([track]);
         member.sfuConsumerConnection.consumerVideoTrack = track;
         if (
-          member.hasSFUConnection ||
-          this.localMeetingMember.connectionType === MeetingServiceType.SFU
+          (member.hasSFUConnection ||
+            this.localMeetingMember.connectionType ===
+              MeetingServiceType.SFU) &&
+          member.produceVideoEnabled
         ) {
           member.videoStream = videoStream;
           consumer.resume();
+          await this.consumerVideoResume(member);
+        } else {
+          consumer.pause();
+          await this.consumerVideoPause(member);
         }
       } else {
         console.error('no member found');
@@ -1323,7 +1345,7 @@ export class SfuWebrtcService {
           rtpParameters,
           producerId,
         });
-        consumer.pause();
+
         consumer.on('transportclose', async () => {
           if (member) {
             member.sfuConsumerConnection.consumerAudio = undefined;
@@ -1333,7 +1355,8 @@ export class SfuWebrtcService {
           !member.sfuConsumerConnection.consumerAudio ||
           member.sfuConsumerConnection.consumerAudio.closed
         ) {
-          member.sfuConsumerConnection.consumerAudio = consumer;
+          if (consumer.kind === 'audio')
+            member.sfuConsumerConnection.consumerAudio = consumer;
           console.warn('consumer audio set');
         }
 
@@ -1341,11 +1364,17 @@ export class SfuWebrtcService {
         const audioStream = new MediaStream([track]);
         member.sfuConsumerConnection.consumerAudioTrack = track;
         if (
-          member.hasSFUConnection ||
-          this.localMeetingMember.connectionType === MeetingServiceType.SFU
+          (member.hasSFUConnection ||
+            this.localMeetingMember.connectionType ===
+              MeetingServiceType.SFU) &&
+          member.produceAudioEnabled
         ) {
           member.audioStream = audioStream;
           consumer.resume();
+          await this.consumerAudioResume(member);
+        } else {
+          consumer.pause();
+          await this.consumerAudioPause(member);
         }
       }
     } catch (e) {
@@ -1362,20 +1391,24 @@ export class SfuWebrtcService {
       if (!consumer.sfuConsumerConnection) {
         console.error('SFU Connection object not initialized');
       }
-      if (
-        consumer.sfuConsumerConnection &&
-        (!consumer.sfuConsumerConnection.consumerAudio ||
-          (consumer.sfuConsumerConnection.consumerAudio &&
-            consumer.sfuConsumerConnection.consumerAudio.closed))
-      ) {
-        return;
-      }
       if (consumer.sfuConsumerConnection.consumerAudio) {
         if (
-          consumer.sfuConsumerConnection.consumerAudioTrack &&
-          consumer.sfuConsumerConnection.consumerAudioTrack.readyState !==
+          consumer.sfuConsumerConnection.consumerAudio.track &&
+          consumer.sfuConsumerConnection.consumerAudio.track.readyState !==
             'ended'
         ) {
+          const result = await this.wssService.messageWithCallback(
+            'toggleConsumer',
+            {
+              targetId: consumer.id,
+              action: 'pause',
+              kind: 'audio',
+            }
+          );
+          this.logger.warn('consumer audio pause', {
+            id: consumer.id,
+            result,
+          });
           consumer.sfuConsumerConnection.consumerAudio.pause();
         }
       }
@@ -1400,23 +1433,23 @@ export class SfuWebrtcService {
       }
       if (consumer.sfuConsumerConnection.consumerAudio) {
         if (
-          consumer.sfuConsumerConnection.consumerAudioTrack &&
-          consumer.sfuConsumerConnection.consumerAudioTrack.readyState !==
+          consumer.sfuConsumerConnection.consumerAudio.track &&
+          consumer.sfuConsumerConnection.consumerAudio.track.readyState !==
             'ended'
         ) {
-          if (
-            consumer.sfuConsumerConnection.consumerAudioTrack.id !==
-            consumer.sfuConsumerConnection.consumerAudio.track.id
-          ) {
-            if (consumer.hasSFUConnection) {
-              consumer.sfuConsumerConnection.consumerAudioTrack =
-                consumer.sfuConsumerConnection.consumerAudio.track;
-              consumer.audioStream = new MediaStream([
-                consumer.sfuConsumerConnection.consumerAudio.track,
-              ]);
-            }
-          }
           consumer.sfuConsumerConnection.consumerAudio.resume();
+          const result = await this.wssService.messageWithCallback(
+            'toggleConsumer',
+            {
+              targetId: consumer.id,
+              action: 'resume',
+              kind: 'audio',
+            }
+          );
+          this.logger.warn('consumer audio resume', {
+            id: consumer.id,
+            result,
+          });
         }
       }
     } catch (e) {
@@ -1433,22 +1466,25 @@ export class SfuWebrtcService {
       if (!consumer.sfuConsumerConnection) {
         console.error('SFU Connection object not initialized');
       }
-      if (
-        consumer.sfuConsumerConnection &&
-        (!consumer.sfuConsumerConnection.consumerVideo ||
-          consumer.sfuConsumerConnection.consumerVideo.paused ||
-          (consumer.sfuConsumerConnection.consumerVideo &&
-            consumer.sfuConsumerConnection.consumerVideo.closed))
-      ) {
-        return;
-      }
       if (consumer.sfuConsumerConnection.consumerVideo) {
         if (
-          consumer.sfuConsumerConnection.consumerVideoTrack &&
-          consumer.sfuConsumerConnection.consumerVideoTrack.readyState !==
+          consumer.sfuConsumerConnection.consumerVideo.track &&
+          consumer.sfuConsumerConnection.consumerVideo.track.readyState !==
             'ended'
         ) {
           consumer.sfuConsumerConnection.consumerVideo.pause();
+          const result = await this.wssService.messageWithCallback(
+            'toggleConsumer',
+            {
+              targetId: consumer.id,
+              action: 'pause',
+              kind: 'video',
+            }
+          );
+          this.logger.log('consumer video pause', {
+            id: consumer.id,
+            result,
+          });
         }
       }
     } catch (e) {
@@ -1470,26 +1506,25 @@ export class SfuWebrtcService {
         await this.consumerAudioStart(consumer.id);
         return;
       }
-      if (
-        consumer.sfuConsumerConnection.consumerVideo &&
-        !consumer.sfuConsumerConnection.consumerVideo.paused
-      ) {
-        return;
-      }
       if (consumer.sfuConsumerConnection.consumerVideo) {
         if (
-          consumer.sfuConsumerConnection.consumerVideoTrack &&
-          consumer.sfuConsumerConnection.consumerVideoTrack.readyState !==
+          consumer.sfuConsumerConnection.consumerVideo.track &&
+          consumer.sfuConsumerConnection.consumerVideo.track.readyState !==
             'ended'
         ) {
-          consumer.sfuConsumerConnection.consumerVideoTrack =
-            consumer.sfuConsumerConnection.consumerVideo.track;
           consumer.sfuConsumerConnection.consumerVideo.resume();
-          if (consumer.hasSFUConnection) {
-            consumer.videoStream = new MediaStream([
-              consumer.sfuConsumerConnection.consumerVideo.track,
-            ]);
-          }
+          const result = await this.wssService.messageWithCallback(
+            'toggleConsumer',
+            {
+              targetId: consumer.id,
+              action: 'resume',
+              kind: 'video',
+            }
+          );
+          this.logger.warn('consumer video resume', {
+            id: consumer.id,
+            result,
+          });
         }
       }
     } catch (e) {

@@ -36,7 +36,7 @@
                     <button mat-icon-button #trigger="matMenuTrigger"  [matMenuTriggerFor]="menu">
                       <mat-icon>more_vert</mat-icon>
                     </button>
-                    {{peer.id!}}
+                    {{peer.nickname}}
                   </div>
                   <mat-menu #menu="matMenu" >
                     <!--                  <button mat-menu-item (click)="localAudioToggle(peer.id!)" *ngIf="!isConsumer(peer)">-->
@@ -77,7 +77,7 @@
                       <button mat-icon-button #trigger="matMenuTrigger"  [matMenuTriggerFor]="menu">
                         <mat-icon>more_vert</mat-icon>
                       </button>
-                      {{peer.id!}}
+                      {{peer.nickname!}}
                     </div>
                     <mat-menu #menu="matMenu" >
                       <button mat-menu-item (click)="localAudioToggle(peer.id!)" *ngIf="!isConsumer(peer)">
@@ -159,6 +159,7 @@
                       <div class="info">
                         <div class="icons">
                           <div class="icon info" id="printTest" (click)="printMeetingMembers()" *ngIf="isDevelopment"></div>
+                          <div class="icon info" id="printTest2" (click)="printStreams()" *ngIf="isDevelopment"></div>
                           <div class="icon stats" id="toggleService" (click)="toggleService()" *ngIf="isDevelopment"></div>
                         </div>
                         <div class="peer is-me">
@@ -229,12 +230,12 @@
               </mat-icon>
             </button>
           </div>
-          <div class="example-button-container">
-            <button mat-fab (click)="handleBroadcast()"  [ngClass]="!isBroadcasting?'button-gray':'button-white'" *ngIf="isMeetingCreator">
-              <mat-icon [svgIcon]="!!isBroadcasting?'svg-bc-on':'svg-bc-off'">
-              </mat-icon>
-            </button>
-          </div>
+<!--          <div class="example-button-container">-->
+<!--            <button mat-fab (click)="handleBroadcast()"  [ngClass]="!isBroadcasting?'button-gray':'button-white'" *ngIf="isMeetingCreator">-->
+<!--              <mat-icon [svgIcon]="!!isBroadcasting?'svg-bc-on':'svg-bc-off'">-->
+<!--              </mat-icon>-->
+<!--            </button>-->
+<!--          </div>-->
         </div>
       </div>
     </div>

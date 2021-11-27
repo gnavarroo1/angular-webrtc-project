@@ -109,7 +109,7 @@ export class MeetingDataService {
   get hasOneSFUConnection(): boolean {
     let flag = false;
     this.meetingMembers.forEach((member) => {
-      if (member.remoteConnectionType === MeetingServiceType.SFU) {
+      if (member.hasSFUConnection) {
         flag = true;
         return;
       }

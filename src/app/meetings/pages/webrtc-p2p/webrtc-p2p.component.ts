@@ -306,31 +306,22 @@ export class WebrtcP2pComponent implements OnInit, OnDestroy {
   }
   printMeetingMembers() {
     const members = Array.from(this.producerMeetingMembers.values());
-    console.log(members);
-    this.snackBar.open(
-      `consumer audio ${members[0].sfuConsumerConnection?.consumerAudio?.paused}| consumer stats ${members[0].sfuConsumerConnection?.consumerVideo?.paused}`,
-      '',
-      {
-        verticalPosition: 'top',
-        horizontalPosition: 'center',
-        duration: 5000,
+    members.forEach((v) => {
+      if (!v.hasSFUConnection) {
+        console.log(v.sfuConsumerConnection.consumerVideo);
       }
-    );
-
-    console.log(members[0].sfuConsumerConnection?.consumerAudio?.track);
-    members[0].sfuConsumerConnection?.consumerAudio?.resume();
+    });
     console.log(this.meetingMember);
-    // Swal.fire({
-    //   title: 'alert',
-    //   text: `${
-    //     JSON.stringify(this.con)
-    //   } | `,
-    //   icon: 'success',
-    //   allowOutsideClick: false,
-    //   confirmButtonText: 'Go to meeting room',
-    // }).then(() => {});
+    console.log(members);
   }
   printStreams(): void {
-    this.meetingService.getSessionStats();
+    const members = this.meetingDataService.meetingMembers;
+    members.forEach((v) => {
+      if (!v.hasSFUConnection) {
+        v.sfuConsumerConnection.consumerAudio?.pause();
+        v.sfuConsumerConnection.consumerVideo?.pause();
+      }
+    });
+    console.log(members);
   }
 }

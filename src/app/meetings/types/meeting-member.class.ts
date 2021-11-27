@@ -169,8 +169,8 @@ export class MeetingMember {
   }) {
     this._id = meetingMember._id;
     this._userId = meetingMember.userId;
-    // this._nickname = meetingMember.nickname;
-    this._nickname = meetingMember._id;
+    this._nickname = meetingMember.nickname;
+    // this._nickname = meetingMember._id;
     this._memberType = meetingMember.memberType;
     this._isScreenSharing = meetingMember.isScreenSharing;
     this._remoteConnectionType = meetingMember.connectionType;

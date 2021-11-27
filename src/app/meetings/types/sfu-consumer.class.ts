@@ -79,110 +79,96 @@ export class SfuConsumer {
         timestamp: defaultTimestamp,
       },
     };
-    const promises = [];
+
     const hasConsumerVideo = !!this.consumerVideo;
     const hasConsumerAudio = !!this.consumerAudio;
+    let videoStats;
+    let audioStats;
     if (hasConsumerVideo && hasConsumerAudio) {
-      promises.push(
-        this.consumerVideo?.getStats(),
-        this.consumerAudio?.getStats()
-      );
+      videoStats = await this.consumerVideo?.getStats();
+      audioStats = await this.consumerAudio?.getStats();
     } else if (hasConsumerVideo) {
-      promises.push(this.consumerVideo?.getStats());
+      videoStats = await this.consumerVideo?.getStats();
     } else if (hasConsumerAudio) {
-      promises.push(this.consumerAudio?.getStats());
+      audioStats = await this.consumerAudio?.getStats();
     } else {
       this.statsSummary = summary;
       return;
     }
-    await Promise.all(promises)
-      .then((stats) => {
-        let videoStats;
-        let audioStats;
-        if (stats.length == 0) {
-          return;
-        } else if (stats.length == 1) {
-          if (hasConsumerVideo) {
-            videoStats = stats[0];
-          } else if (hasConsumerAudio) {
-            audioStats = stats[0];
-          }
-        } else {
-          videoStats = stats[0];
-          audioStats = stats[1];
-        }
 
-        if (videoStats) {
-          videoStats.forEach((report) => {
-            switch (report.type as RTCStatsType) {
-              case 'inbound-rtp':
-                summary.video = {
-                  ...summary.video,
-                  packetsReceived: report.packetsReceived,
-                  packetsLost: report.packetsLost,
-                  framesReceived: report.framesReceived,
-                  bytesReceived: report.bytesReceived,
-                  framesDecoded: report.framesDecoded,
-                  firCountInbound: report.firCount,
-                  pliCountInbound: report.pliCount,
-                  qpSumInbound: report.qpSum,
-                  nackCountInbound: report.nackCount,
-                  framesDropped: report.framesDropped,
-                  remoteFrameHeight: report.frameHeight,
-                  remoteFrameWidth: report.frameWidth,
-                  jitter: report.jitter,
-                  timestamp: defaultTimestamp,
-                };
-                break;
-            }
-          });
-        } else {
-          summary.video = {
-            ...summary.video,
-            packetsReceived: 0,
-            packetsLost: 0,
-            framesReceived: 0,
-            bytesReceived: 0,
-            framesDecoded: 0,
-            pliCountInbound: 0,
-            qpSumInbound: 0,
-            firCountInbound: 0,
-            nackCountInbound: 0,
-            jitter: 0,
-            timestamp: defaultTimestamp,
-          };
+    if (videoStats) {
+      videoStats.forEach((report) => {
+        switch (report.type as RTCStatsType) {
+          case 'media-source':
+          case 'track':
+            console.warn(report);
+            break;
+          case 'inbound-rtp':
+            summary.video = {
+              packetsReceived: report.packetsReceived,
+              packetsLost: report.packetsLost,
+              framesReceived: report.framesReceived,
+              bytesReceived: report.bytesReceived,
+              framesDecoded: report.framesDecoded,
+              firCountInbound: report.firCount,
+              pliCountInbound: report.pliCount,
+              qpSumInbound: report.qpSum,
+              nackCountInbound: report.nackCount,
+              framesDropped: report.framesDropped,
+              remoteFrameHeight: report.frameHeight,
+              remoteFrameWidth: report.frameWidth,
+              jitter: report.jitter,
+              timestamp: defaultTimestamp,
+            };
+            break;
         }
-        if (audioStats) {
-          audioStats.forEach((report) => {
-            switch (report.type as RTCStatsType) {
-              case 'inbound-rtp':
-                summary.audio = {
-                  ...summary.audio,
-                  packetsReceived: report.packetsReceived,
-                  packetsLost: report.packetsLost,
-                  bytesReceived: report.bytesReceived,
-                  nackCountInbound: report.nackCount,
-                  jitter: report.jitter,
-                  timestamp: defaultTimestamp,
-                };
-                break;
-            }
-          });
-        } else {
-          summary.audio = {
-            ...summary.audio,
-            packetsReceived: 0,
-            packetsLost: 0,
-            bytesReceived: 0,
-            nackCountInbound: 0,
-            jitter: 0,
-            timestamp: defaultTimestamp,
-          };
-        }
-      })
-      .catch((err) => {
-        console.error(err);
       });
+    } else {
+      summary.video = {
+        packetsReceived: 0,
+        packetsLost: 0,
+        framesReceived: 0,
+        bytesReceived: 0,
+        framesDecoded: 0,
+        pliCountInbound: 0,
+        qpSumInbound: 0,
+        firCountInbound: 0,
+        nackCountInbound: 0,
+        jitter: 0,
+        timestamp: defaultTimestamp,
+      };
+    }
+    if (audioStats) {
+      audioStats.forEach((report) => {
+        // console.warn(report);
+        switch (report.type as RTCStatsType) {
+          case 'media-source':
+          case 'track':
+            console.warn(report);
+            break;
+          case 'inbound-rtp':
+            summary.audio = {
+              packetsReceived: report.packetsReceived,
+              packetsLost: report.packetsLost,
+              bytesReceived: report.bytesReceived,
+              nackCountInbound: report.nackCount,
+              jitter: report.jitter,
+              timestamp: defaultTimestamp,
+            };
+            break;
+        }
+      });
+    } else {
+      summary.audio = {
+        packetsReceived: 0,
+        packetsLost: 0,
+        bytesReceived: 0,
+        nackCountInbound: 0,
+        jitter: 0,
+        timestamp: defaultTimestamp,
+      };
+    }
+    console.warn(summary, this.consumerVideo?.kind, this.consumerAudio?.kind);
     this.statsSummary = summary;
     return;
   }

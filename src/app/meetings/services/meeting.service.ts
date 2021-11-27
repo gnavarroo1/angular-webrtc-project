@@ -258,6 +258,19 @@ export class MeetingService {
           }
           this.meetingMembers.delete(data.sender);
           this.meetingViewers.delete(data.sender);
+          if (!this.meetingDataService.hasOneSFUConnection) {
+            this.meetingMembers.forEach((value) => {
+              this.mediasoupService.consumerVideoPause(value);
+              this.mediasoupService.consumerAudioPause(value);
+            });
+          }
+          if (
+            !this.meetingDataService.hasOneSFUConnection &&
+            this.meetingViewers.size == 0
+          ) {
+            this.mediasoupService.producerVideoPause(this.meetingMember._id!);
+            this.mediasoupService.producerAudioPause(this.meetingMember._id!);
+          }
         });
       const onToggleAudio$ = this.apiGatewayService
         .onToggleAudio()
@@ -470,7 +483,7 @@ export class MeetingService {
   ): Promise<void> {
     if (meetingId) {
       try {
-        // console.warn('INIT MEETING');
+        console.warn('INIT MEETING', user);
         const result = await this.getLocalMediaDevices(memberType);
         if (result) {
           this.meetingMember = {
@@ -497,11 +510,11 @@ export class MeetingService {
             this.meetingMember.meetingId = meeting._id;
             this.isBroadcasting = meeting.isBroadcasting;
             let nickname;
-            if (environment.development) {
-              nickname = this.meetingMember.userId;
-            } else {
-              nickname = localStorage.getItem(environment.lsGuessName);
-            }
+            // if (environment.development) {
+            //   nickname = this.meetingMember.userId;
+            // } else {
+            //   nickname = localStorage.getItem(environment.lsGuessName);
+            // }
 
             if (!nickname) {
               await Swal.fire({
@@ -516,12 +529,11 @@ export class MeetingService {
                     '#input-nickname'
                   ) as HTMLInputElement;
                   const nickname = input.value;
-                  if (nickname) {
-                    localStorage.setItem(environment.lsGuessName, nickname);
-                  } else {
+                  if (!nickname) {
                     Swal.showValidationMessage(
                       'Debe de ingresar su nombre de usuario'
                     );
+                  } else {
                   }
                   return {
                     nickname: nickname,
@@ -529,15 +541,16 @@ export class MeetingService {
                 },
               })
                 .then((result) => {
+                  console.warn('result', result);
                   nickname = result.value!.nickname;
+                  localStorage.setItem(environment.lsGuessName, nickname);
                 })
                 .catch((e) => {
                   console.error(e);
                 });
             }
-            this.meetingMember.nickname = nickname
-              ? nickname
-              : this.meetingMember.userId;
+            console.warn(nickname);
+            this.meetingMember.nickname = nickname ? nickname : user.username;
             this.joinMeeting(this.meetingMember)
               .then(async (resAddMeetingMember) => {
                 // console.warn(resAddMeetingMember);
@@ -593,7 +606,7 @@ export class MeetingService {
                       this.getSessionStats();
                     }
                   });
-                  this.meetingMember.nickname = resAddMeetingMember.payload._id;
+                  // this.meetingMember.nickname = resAddMeetingMember.payload._id;
                   await this.apiRestService
                     .getMeetingMembers(meetingId)
                     .toPromise()
@@ -1318,7 +1331,7 @@ export class MeetingService {
     }
 
     sessionStatsSnapshot.sfuSnapshot.consumer = consumer;
-
+    // console.warn(sessionStatsSnapshot);
     this.apiRestService
       .addSnapshot(sessionStatsSnapshot)
       .pipe(first())
@@ -1372,11 +1385,11 @@ export class MeetingService {
             this.mediasoupService.consumerAudioStart(member.id),
           ]).then(async () => {
             member.updateLocalConnectionType(MeetingServiceType.SFU);
-            if (member.sfuConsumerConnection.consumerVideo?.paused) {
-              member.sfuConsumerConnection.consumerVideo?.resume();
+            if (member.produceVideoEnabled) {
+              await this.mediasoupService.consumerVideoResume(member);
             }
-            if (member.sfuConsumerConnection.consumerAudio?.paused) {
-              member.sfuConsumerConnection.consumerAudio?.resume();
+            if (member.produceAudioEnabled) {
+              await this.mediasoupService.consumerAudioResume(member);
             }
             new Promise((f) => setTimeout(f, 1500)).then(async () => {
               member.p2pConsumerConnection.noiseSendTransceiver.direction =
@@ -1416,10 +1429,10 @@ export class MeetingService {
                 'sendonly';
             }
             if (member.sfuConsumerConnection.consumerAudio) {
-              member.sfuConsumerConnection.consumerAudio.pause();
+              await this.mediasoupService.consumerAudioPause(member);
             }
             if (member.sfuConsumerConnection.consumerVideo) {
-              member.sfuConsumerConnection.consumerVideo.pause();
+              await this.mediasoupService.consumerVideoPause(member);
             }
             member.updateLocalConnectionType(MeetingServiceType.MESH);
           }
@@ -1464,14 +1477,14 @@ export class MeetingService {
           member.sfuConsumerConnection.consumerAudio &&
           !member.sfuConsumerConnection.consumerAudio.paused
         ) {
-          member.sfuConsumerConnection.consumerAudio.pause();
+          this.mediasoupService.consumerAudioPause(member);
         }
         if (
           member.produceVideoEnabled &&
           member.sfuConsumerConnection.consumerVideo &&
           !member.sfuConsumerConnection.consumerVideo.paused
         ) {
-          member.sfuConsumerConnection.consumerVideo.pause();
+          this.mediasoupService.consumerVideoPause(member);
         }
       }
     });
@@ -1506,14 +1519,14 @@ export class MeetingService {
           member.sfuConsumerConnection.consumerAudio &&
           !member.sfuConsumerConnection.consumerAudio.paused
         ) {
-          member.sfuConsumerConnection.consumerAudio.resume();
+          this.mediasoupService.consumerAudioResume(member);
         }
         if (
           member.produceVideoEnabled &&
           member.sfuConsumerConnection.consumerVideo &&
           !member.sfuConsumerConnection.consumerVideo.paused
         ) {
-          member.sfuConsumerConnection.consumerVideo.resume();
+          this.mediasoupService.consumerVideoResume(member);
         }
         if (member.remoteConnectionType === MeetingServiceType.MESH) {
           member.updateRemoteConnectionType(MeetingServiceType.SFU);
@@ -1553,10 +1566,9 @@ export class MeetingService {
         member.p2pConsumerConnection.noiseSendTransceiver.direction =
           'sendonly';
       }
-
       new Promise((f) => setTimeout(f, 1500)).then(() => {
-        member.sfuConsumerConnection.consumerAudio?.pause();
-        member.sfuConsumerConnection.consumerVideo?.pause();
+        this.mediasoupService.consumerVideoPause(member);
+        this.mediasoupService.consumerAudioPause(member);
       });
 
       if (
@@ -1581,16 +1593,17 @@ export class MeetingService {
       ]);
       await this.mediasoupService.initMediaProduction(true);
       member.updateRemoteConnectionType(MeetingServiceType.SFU);
-      if (member.sfuConsumerConnection.consumerVideo?.paused) {
-        member.sfuConsumerConnection.consumerVideo?.resume();
+      if (member.produceVideoEnabled) {
+        await this.mediasoupService.consumerVideoResume(member);
       }
-      if (member.sfuConsumerConnection.consumerAudio?.paused) {
-        member.sfuConsumerConnection.consumerAudio?.resume();
+      if (member.produceAudioEnabled) {
+        await this.mediasoupService.consumerAudioResume(member);
       }
-      member.p2pConsumerConnection.videoSendTransceiver.direction =
-        'inactive';
+
+      member.p2pConsumerConnection.videoSendTransceiver.direction = 'inactive';
       await new Promise((f) => setTimeout(f, 1500)).then(() => {
-        member.p2pConsumerConnection.noiseSendTransceiver.direction = 'inactive';
+        member.p2pConsumerConnection.noiseSendTransceiver.direction =
+          'inactive';
       });
     }
   }
